@@ -1,0 +1,145 @@
+/**
+ * API 封装 — axios 实例 + 接口定义
+ */
+import axios from 'axios'
+import { useUserStore } from '@/stores/user'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE || '/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// 请求拦截：从 Pinia store 取用户信息
+api.interceptors.request.use((config) => {
+  const userStore = useUserStore()
+  if (userStore.token) {
+    config.headers.Authorization = `Bearer ${userStore.token}`
+  }
+  // 注入用户上下文 header（后端 RBAC 依赖）
+  if (userStore.user) {
+    config.headers['X-User-Id'] = userStore.userId
+    config.headers['X-Role'] = userStore.role
+    config.headers['X-User-Name'] = userStore.user.name
+    if (userStore.building) {
+      config.headers['X-Building'] = userStore.building
+    }
+  }
+  return config
+})
+
+// 响应拦截：统一错误处理
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    const msg = error.response?.data?.error || '网络错误'
+    console.error('[API Error]', msg, error.response?.status)
+    return Promise.reject(error)
+  }
+)
+
+// ─── 接口定义 ─── (W1·D2-D5 逐步完善)
+
+export interface Alert {
+  id: string
+  elder_id: string
+  elder_name: string
+  building: string
+  rule_id: string
+  level: 'P0' | 'P1' | 'P2'
+  status: string
+  trigger_desc: string
+  triggered_at: string
+}
+
+export interface Elder {
+  id: string
+  name: string
+  gender: string
+  age: number
+  building: string
+  unit: string
+  room: string
+  risk_class: 'A' | 'B' | 'C'
+  plan_level: 'full' | 'standard' | 'basic'
+}
+
+// 告警 API
+export const alertApi = {
+  list: (params?: Record<string, unknown>) => api.get('/alerts', { params }),
+  detail: (id: string) => api.get(`/alerts/${id}`),
+  handle: (id: string, data: { action: string; note?: string; false_positive_reason?: string }) =>
+    api.put(`/alerts/${id}/handle`, data),
+}
+
+// 档案 API
+export const elderApi = {
+  list: (params?: Record<string, unknown>) => api.get('/elders', { params }),
+  detail: (id: string) => api.get(`/elders/${id}`),
+  importExcel: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/elders/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  setStatus: (id: string, data: Record<string, unknown>) =>
+    api.put(`/elders/${id}/status`, data),
+}
+
+// 统计 API
+export const statsApi = {
+  me: () => api.get('/me/stats'),
+}
+
+// 食堂签到/消费 API
+export interface MealRecord {
+  id: string
+  elder_id: string
+  elder_name: string
+  meal_date: string
+  meal_type: 'breakfast' | 'lunch' | 'dinner'
+  check_method: 'manual' | 'scan' | 'import'
+  amount: number
+  checked_at: string
+}
+
+export const mealApi = {
+  checkin: (data: { elder_id: string; meal_type: string; amount?: number; note?: string }) =>
+    api.post('/meals/checkin', data),
+  import: (records: Array<{ elder_id: string; meal_type: string; meal_date?: string; amount?: number }>) =>
+    api.post('/meals/import', { records }),
+  list: (params?: Record<string, unknown>) => api.get('/meals', { params }),
+  stats: (params?: { date?: string; building?: string }) => api.get('/meals/stats', { params }),
+  update: (id: string, data: Record<string, unknown>) => api.put(`/meals/${id}`, data),
+  cancel: (id: string) => api.delete(`/meals/${id}`),
+}
+
+// 老人档案补充
+export const elderApiExt = {
+  update: (id: string, data: Record<string, unknown>) => api.put(`/elders/${id}/info`, data),
+  delete: (id: string) => api.delete(`/elders/${id}`),
+}
+
+// 工作人员管理 API
+export interface Worker {
+  id: string
+  name: string
+  dingtalk_user_id: string
+  role: string
+  building?: string
+  phone: string
+  on_duty: boolean
+}
+
+export const workerApi = {
+  list: (params?: Record<string, unknown>) => api.get('/workers', { params }),
+  detail: (id: string) => api.get(`/workers/${id}`),
+  create: (data: Partial<Worker>) => api.post('/workers', data),
+  update: (id: string, data: Partial<Worker>) => api.put(`/workers/${id}`, data),
+  delete: (id: string) => api.delete(`/workers/${id}`),
+}
+
+export default api

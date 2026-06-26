@@ -1,0 +1,31 @@
+{
+  "name": "xidong-api",
+  "version": "0.1.0",
+  "description": "溪东社区智慧养老 MVP 后端 — 阿里云 FC + TypeScript",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "migrate": "tsx scripts/migrate.ts",
+    "simulate": "tsx scripts/simulate-day.ts"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.11",
+    "ioredis": "^5.4.1",
+    "mysql2": "^3.10.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.15.0",
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

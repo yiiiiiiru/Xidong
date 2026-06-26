@@ -1,0 +1,61 @@
+/**
+ * Vant 主题覆盖 & 全局样式
+ * 主色 #1677ff · 最小字号 16px · 安全区适配
+ */
+
+:root {
+  /* Vant 主色覆盖 */
+  --van-primary-color: #1677ff;
+  --van-primary-color-dark: #0958d9;
+  --van-primary-color-light: #4096ff;
+
+  /* 文字 */
+  --van-font-size-sm: 14px;
+  --van-font-size-md: 16px;
+  --van-font-size-lg: 18px;
+
+  /* 间距 */
+  --app-padding: 12px;
+}
+
+/* 基础 reset */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  background: #f5f5f5;
+  color: #333;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 安全区底部 padding（钉钉 H5 内嵌） */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* 告警等级色标 */
+.level-p0 { color: #f5222d; }
+.level-p1 { color: #fa8c16; }
+.level-p2 { color: #1677ff; }
+
+.level-bg-p0 { background-color: #fff1f0; }
+.level-bg-p1 { background-color: #fff7e6; }
+.level-bg-p2 { background-color: #e6f4ff; }
+
+/* 状态徽标色 */
+.status-pending   { color: #f5222d; }
+.status-processing { color: #fa8c16; }
+.status-closed    { color: #52c41a; }
+.status-dispatched { color: #722ed1; }
+
+/* 通用间距 */
+.p-12 { padding: 12px; }
+.mt-8 { margin-top: 8px; }
+.mb-12 { margin-bottom: 12px; }

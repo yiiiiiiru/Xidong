@@ -1,0 +1,146 @@
+[
+  {
+    "id": "R-BTN",
+    "level": "P0",
+    "planLevels": ["full", "standard", "basic"],
+    "penetrateSuppress": true,
+    "skipDedup": true,
+    "condition": {
+      "type": "instant",
+      "eventType": "button_hold",
+      "holdSecMin": 2
+    }
+  },
+  {
+    "id": "R-MIX-01",
+    "level": "P0",
+    "planLevels": ["full", "standard"],
+    "condition": {
+      "type": "composite",
+      "desc": "夜间离床 + 厕所PIR有人",
+      "requires": ["off_bed_duration_ge_min", "bathroom_pir_active"],
+      "offBedMinMin": 30,
+      "timeWindow": { "start": "19:00", "end": "07:00" }
+    }
+  },
+  {
+    "id": "R-MIX-02",
+    "level": "P0",
+    "planLevels": ["full", "standard"],
+    "condition": {
+      "type": "composite",
+      "desc": "应睡未睡 + 未出门 + 厕所无人",
+      "requires": ["past_sleep_deadline", "no_door_open", "bathroom_pir_clear"]
+    }
+  },
+  {
+    "id": "R-BED-01",
+    "level": "P1",
+    "planLevels": ["full", "standard"],
+    "condition": {
+      "type": "duration",
+      "desc": "夜间离床超时",
+      "state": "off_bed",
+      "durationMinField": "bedLeaveMin",
+      "defaultDurationMin": 30,
+      "timeWindow": { "start": "19:00", "end": "07:00" },
+      "excludeIf": ["bathroom_pir_active"]
+    }
+  },
+  {
+    "id": "R-BED-02",
+    "level": "P1",
+    "planLevels": ["full", "standard"],
+    "condition": {
+      "type": "deadline",
+      "desc": "应睡未睡",
+      "state": "off_bed",
+      "deadlineField": "tSleep",
+      "deltaField": "deltaMin"
+    }
+  },
+  {
+    "id": "R-BED-03",
+    "level": "P1",
+    "planLevels": ["full", "standard"],
+    "condition": {
+      "type": "accumulation",
+      "desc": "整夜在床 < 1h",
+      "state": "in_bed",
+      "windowStart": "22:00",
+      "windowEnd": "06:00",
+      "thresholdMin": 60,
+      "op": "lt"
+    }
+  },
+  {
+    "id": "R-BED-04",
+    "level": "P1",
+    "planLevels": ["full", "standard"],
+    "condition": {
+      "type": "duration",
+      "desc": "连续在床 > 12h",
+      "state": "in_bed",
+      "durationMin": 720
+    }
+  },
+  {
+    "id": "R-BATH-01",
+    "level": "P1",
+    "planLevels": ["full", "standard"],
+    "condition": {
+      "type": "duration",
+      "desc": "卫生间滞留",
+      "state": "bathroom_pir_active",
+      "durationMinField": "bathThresholdMin",
+      "defaultDurationMin": 30,
+      "coldStartDays": 7,
+      "coldStartDurationMin": 60
+    }
+  },
+  {
+    "id": "R-DOOR-01",
+    "level": "P2",
+    "planLevels": ["full"],
+    "condition": {
+      "type": "absence",
+      "desc": "72h 未出门",
+      "eventType": "door_open",
+      "absenceHours": 72,
+      "disableIfHomebound": true
+    }
+  },
+  {
+    "id": "R-DOOR-02",
+    "level": "P2",
+    "planLevels": ["full"],
+    "condition": {
+      "type": "duration",
+      "desc": "门长开 >= 30min",
+      "state": "door_open",
+      "durationMin": 30
+    }
+  },
+  {
+    "id": "R-DEV-01",
+    "level": "P2",
+    "planLevels": ["full", "standard", "basic"],
+    "condition": {
+      "type": "absence",
+      "desc": "24h 无事件",
+      "absenceHours": 24
+    }
+  },
+  {
+    "id": "R-DEV-02",
+    "level": "P2",
+    "planLevels": ["full", "standard", "basic"],
+    "condition": {
+      "type": "threshold",
+      "desc": "电量 < 20%",
+      "field": "battery_pct",
+      "op": "lt",
+      "value": 20
+    }
+  }
+]
