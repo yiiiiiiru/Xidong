@@ -13,6 +13,9 @@
       <p class="trigger-desc">{{ alert.trigger_desc }}</p>
     </div>
     <div class="card-footer">
+      <button class="tts-btn" @click.stop="readAloud" title="语音播报">
+        <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      </button>
       <van-tag plain :type="statusTagType">{{ statusLabel }}</van-tag>
     </div>
   </div>
@@ -23,6 +26,7 @@ import { computed } from 'vue'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
+import { speak } from '@/utils/accessibility'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -79,6 +83,11 @@ const statusTagType = computed(() => {
 })
 
 const timeAgo = computed(() => dayjs(props.alert.triggered_at).fromNow())
+
+function readAloud() {
+  const text = `${levelLabel.value}告警，${props.alert.elder_name}，${props.alert.trigger_desc}，${timeAgo.value}`
+  speak(text)
+}
 </script>
 
 <style scoped>
@@ -128,6 +137,7 @@ const timeAgo = computed(() => dayjs(props.alert.triggered_at).fromNow())
 }
 .card-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

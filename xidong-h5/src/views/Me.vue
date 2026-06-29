@@ -23,7 +23,11 @@
     <van-cell-group inset title="功能" class="mt-8">
       <van-cell title="我负责的老人" is-link to="/elders" icon="friends-o" />
       <van-cell title="误报统计" is-link to="/me/fp-stats" icon="chart-trending-o" />
-      <van-cell title="系统设置" is-link icon="setting-o" @click="showToast('TODO: 系统设置页')" />
+      <van-cell title="适老模式" label="大字号 + 语音播报" icon="eye-o">
+        <template #right-icon>
+          <van-switch v-model="elderMode" size="20px" @change="onElderModeChange" />
+        </template>
+      </van-cell>
     </van-cell-group>
 
     <!-- 降级开关（仅管理员可见，MVP调试用） -->
@@ -56,6 +60,7 @@ import { showToast } from 'vant'
 import AppTabbar from '@/components/AppTabbar.vue'
 import { statsApi } from '@/api/index'
 import { useUserStore } from '@/stores/user'
+import { isElderMode, toggleElderMode } from '@/utils/accessibility'
 
 const userStore = useUserStore()
 
@@ -98,6 +103,13 @@ async function fetchStats() {
   } catch (err) {
     console.error('[Me] fetch stats failed:', err)
   }
+}
+
+// 适老模式
+const elderMode = ref(isElderMode())
+function onElderModeChange() {
+  toggleElderMode()
+  showToast(elderMode.value ? '已开启适老模式，字号已放大' : '已关闭适老模式')
 }
 
 // MVP 降级开关

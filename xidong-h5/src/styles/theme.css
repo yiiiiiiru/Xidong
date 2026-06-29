@@ -59,3 +59,55 @@ html, body {
 .p-12 { padding: 12px; }
 .mt-8 { margin-top: 8px; }
 .mb-12 { margin-bottom: 12px; }
+
+/* ========== 适老模式 ========== */
+html.elder-mode {
+  /* 全局放大 1.3x，铁法解决所有 px 写死的问题 */
+  zoom: 1.3;
+  -moz-transform: scale(1.3);
+  -moz-transform-origin: top left;
+}
+
+html.elder-mode body {
+  /* 稍微加粗，提高可读性 */
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* 适老模式下 Vant 字号覆盖 */
+html.elder-mode {
+  --van-font-size-sm: 16px;
+  --van-font-size-md: 18px;
+  --van-font-size-lg: 22px;
+  --van-cell-font-size: 18px;
+  --van-nav-bar-title-font-size: 20px;
+  --van-tab-font-size: 18px;
+  --van-tag-font-size: 14px;
+}
+
+/* 语音播报按钮 */
+.tts-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e6f4ff;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tts-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: #1677ff;
+}
+html.elder-mode .tts-btn {
+  width: 40px;
+  height: 40px;
+}
+html.elder-mode .tts-btn svg {
+  width: 22px;
+  height: 22px;
+}
