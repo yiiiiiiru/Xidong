@@ -152,7 +152,7 @@ async function onAction(action: { value: string }) {
   try {
     await alertApi.handle(alertId, { action: action.value })
     showToast('操作成功')
-    await fetchDetail()
+    setTimeout(() => router.back(), 800)
   } catch (err) {
     showToast('操作失败')
   }
@@ -167,7 +167,7 @@ async function onConfirmFp() {
     })
     showToast('已标记误报')
     fpReason.value = ''
-    await fetchDetail()
+    setTimeout(() => router.back(), 800)
   } catch (err) {
     showToast('操作失败')
   }

@@ -80,7 +80,7 @@ export const ElderDao = {
 
     const [rows] = await pool.execute<RowDataPacket[]>(
       `SELECT * FROM elder ${clause} ORDER BY risk_class ASC, id ASC LIMIT ? OFFSET ?`,
-      [...params, pageSize, offset] as SqlParams
+      [...params, String(pageSize), String(offset)] as SqlParams
     );
 
     return { items: rows as ElderRow[], total };
@@ -97,14 +97,15 @@ export const ElderDao = {
     const id = data.id || `E${Date.now().toString(36)}`;
     await pool.execute(
       `INSERT INTO elder (id, name, gender, age, phone, id_card, building, unit, room,
-        risk_class, plan_level, is_homebound, property_phone, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        risk_class, plan_level, is_homebound, property_phone, notes, created_by, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, data.name || '', data.gender || '男', data.age || 80,
         data.phone || '', data.id_card || '', data.building || '1',
         data.unit || '', data.room || '101',
         data.risk_class || 'C', data.plan_level || 'basic',
         data.is_homebound || 0, data.property_phone || '', data.notes || null,
+        data.created_by || null, data.created_by || null,
       ]
     );
     return id;
@@ -125,7 +126,7 @@ export const ElderDao = {
     const params: SqlParams = [];
     const allowed = ['name', 'gender', 'age', 'phone', 'building', 'unit', 'room',
       'risk_class', 'plan_level', 'is_homebound', 'property_phone', 'notes',
-      'chronic_disease', 'habit_profile', 'id_card'] as const;
+      'chronic_disease', 'habit_profile', 'id_card', 'updated_by'] as const;
     for (const key of allowed) {
       if ((data as Record<string, unknown>)[key] !== undefined) {
         sets.push(`${key} = ?`);
@@ -237,7 +238,7 @@ export const MealDao = {
 
     const [rows] = await pool.execute<RowDataPacket[]>(
       `SELECT * FROM meal_record ${clause} ORDER BY checked_at DESC LIMIT ? OFFSET ?`,
-      [...params, pageSize, offset] as SqlParams
+      [...params, String(pageSize), String(offset)] as SqlParams
     );
 
     return { items: rows as MealRow[], total };
@@ -360,7 +361,7 @@ export const WorkerDao = {
 
     const [rows] = await pool.execute<RowDataPacket[]>(
       `SELECT * FROM social_worker ${clause} ORDER BY name ASC LIMIT ? OFFSET ?`,
-      [...params, pageSize, offset] as SqlParams
+      [...params, String(pageSize), String(offset)] as SqlParams
     );
 
     return { items: rows as WorkerRow[], total };
@@ -460,7 +461,7 @@ export const AlertDao = {
 
     const [rows] = await pool.execute<RowDataPacket[]>(
       `SELECT a.* FROM alert a${joinClause} ${clause} ORDER BY a.triggered_at DESC LIMIT ? OFFSET ?`,
-      [...params, pageSize, offset] as SqlParams
+      [...params, String(pageSize), String(offset)] as SqlParams
     );
 
     return { items: rows as AlertRow[], total };

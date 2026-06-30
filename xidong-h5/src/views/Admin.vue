@@ -1,88 +1,234 @@
 <template>
   <div class="admin-page">
-    <van-nav-bar title="人员管理" left-arrow @click-left="$router.back()" />
+    <van-nav-bar title="数据管理" left-arrow @click-left="$router.back()" />
 
-    <!-- 角色筛选 -->
-    <van-dropdown-menu>
-      <van-dropdown-item v-model="filterRole" :options="roleOptions" @change="fetchWorkers" />
-    </van-dropdown-menu>
+    <van-tabs v-model:active="activeTab" sticky>
+      <!-- ===== Tab 1: 老人管理 ===== -->
+      <van-tab title="老人管理">
+        <van-search v-model="elderSearch" placeholder="搜索姓名" @search="fetchElders" />
+        <van-pull-refresh v-model="elderRefreshing" @refresh="fetchElders().then(() => elderRefreshing = false)">
+          <div class="list-content">
+            <van-cell-group inset>
+              <van-swipe-cell v-for="e in elders" :key="e.id">
+                <van-cell :title="e.name" :label="`${e.building}幢${e.room}室 · ${riskLabel(e.risk_class)}${e.updated_by ? ' · 最后修改: ' + e.updated_by : ''}`" is-link @click="editElder(e)">
+                  <template #value>
+                    <van-tag :type="riskColor(e.risk_class)" plain>{{ e.risk_class }}</van-tag>
+                  </template>
+                </van-cell>
+                <template #right>
+                  <van-button square type="danger" text="删除" @click="deleteElder(e)" />
+                </template>
+              </van-swipe-cell>
+            </van-cell-group>
+            <van-empty v-if="!elders.length" description="暂无老人档案" />
+          </div>
+        </van-pull-refresh>
+        <div class="fab-btn">
+          <van-button icon="plus" type="primary" round @click="showElderAdd" />
+        </div>
 
-    <!-- 人员列表 -->
-    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-      <div class="list-content p-12">
-        <van-cell-group inset>
-          <van-swipe-cell v-for="w in workers" :key="w.id">
-            <van-cell
-              :title="w.name"
-              :label="roleLabel(w.role) + (w.building ? ` (${w.building}幢)` : '')"
-              :value="w.on_duty ? '当班' : ''"
-              is-link
-              @click="editWorker(w)"
-            >
-              <template #right-icon>
-                <van-tag v-if="w.on_duty" type="success" plain>当班</van-tag>
+        <!-- 老人编辑弹窗 -->
+        <van-popup v-model:show="elderFormShow" position="bottom" round :style="{ height: '75%' }">
+          <van-nav-bar :title="elderIsEdit ? '编辑老人' : '新增老人'" left-text="取消" right-text="保存" @click-left="elderFormShow = false" @click-right="saveElder" />
+          <van-cell-group inset style="margin-top: 12px">
+            <van-field v-model="elderForm.name" label="姓名" placeholder="张阿婆" />
+            <van-field v-model="elderForm.gender" label="性别" placeholder="男/女" />
+            <van-field v-model="elderForm.age" label="年龄" placeholder="82" type="digit" />
+            <van-field v-model="elderForm.phone" label="电话" placeholder="138xxxx1001" type="tel" />
+            <van-field v-model="elderForm.building" label="楼栋" placeholder="3" />
+            <van-field v-model="elderForm.room" label="房间" placeholder="301" />
+            <van-field label="风险等级" readonly is-link :model-value="riskLabel(elderForm.risk_class)" @click="showRiskPicker = true" />
+            <van-field label="服务等级" readonly is-link :model-value="planLabel(elderForm.plan_level)" @click="showPlanPicker = true" />
+            <van-field v-model="elderForm.property_phone" label="物业电话" placeholder="24h值班" type="tel" />
+          </van-cell-group>
+        </van-popup>
+
+        <van-action-sheet v-model:show="showRiskPicker" :actions="riskActions" @select="(a: any) => { elderForm.risk_class = a.value; showRiskPicker = false }" cancel-text="取消" />
+        <van-action-sheet v-model:show="showPlanPicker" :actions="planActions" @select="(a: any) => { elderForm.plan_level = a.value; showPlanPicker = false }" cancel-text="取消" />
+      </van-tab>
+
+      <!-- ===== Tab 2: 人员管理 ===== -->
+      <van-tab title="人员管理">
+        <van-dropdown-menu>
+          <van-dropdown-item v-model="filterRole" :options="roleOptions" @change="fetchWorkers" />
+        </van-dropdown-menu>
+        <van-pull-refresh v-model="workerRefreshing" @refresh="fetchWorkers().then(() => workerRefreshing = false)">
+          <div class="list-content">
+            <van-cell-group inset>
+              <van-swipe-cell v-for="w in workers" :key="w.id">
+                <van-cell :title="w.name" :label="roleLabel(w.role) + (w.building ? ` (${w.building}幢)` : '')" is-link @click="editWorker(w)">
+                  <template #right-icon>
+                    <van-tag v-if="w.on_duty" type="success" plain>当班</van-tag>
+                  </template>
+                </van-cell>
+                <template #right>
+                  <van-button square type="danger" text="删除" @click="deleteWorker(w)" />
+                </template>
+              </van-swipe-cell>
+            </van-cell-group>
+            <van-empty v-if="!workers.length" description="暂无人员" />
+          </div>
+        </van-pull-refresh>
+        <div class="fab-btn">
+          <van-button icon="plus" type="primary" round @click="showWorkerAdd" />
+        </div>
+
+        <!-- 人员编辑弹窗 -->
+        <van-popup v-model:show="workerFormShow" position="bottom" round :style="{ height: '65%' }">
+          <van-nav-bar :title="workerIsEdit ? '编辑人员' : '新增人员'" left-text="取消" right-text="保存" @click-left="workerFormShow = false" @click-right="saveWorker" />
+          <van-cell-group inset style="margin-top: 12px">
+            <van-field v-model="workerForm.name" label="姓名" placeholder="张社工" />
+            <van-field v-model="workerForm.phone" label="电话" placeholder="138xxxx0001" type="tel" />
+            <van-field label="角色" readonly is-link :model-value="roleLabel(workerForm.role)" @click="showWorkerRolePicker = true" />
+            <van-field v-if="workerForm.role === 'building_manager'" v-model="workerForm.building" label="负责楼栋" placeholder="3" />
+            <van-field label="当班">
+              <template #input>
+                <van-switch v-model="workerForm.on_duty" />
               </template>
-            </van-cell>
-            <template #right>
-              <van-button square type="danger" text="删除" @click="onDelete(w)" />
-            </template>
-          </van-swipe-cell>
-        </van-cell-group>
-        <van-empty v-if="!workers.length" description="暂无人员" />
-      </div>
-    </van-pull-refresh>
+            </van-field>
+          </van-cell-group>
+        </van-popup>
 
-    <!-- 新增按钮 -->
-    <div class="fab-btn">
-      <van-button icon="plus" type="primary" round @click="showAddForm" />
-    </div>
-
-    <!-- 编辑/新增弹窗 -->
-    <van-popup v-model:show="showForm" position="bottom" round :style="{ height: '70%' }">
-      <van-nav-bar
-        :title="isEdit ? '编辑人员' : '新增人员'"
-        left-text="取消"
-        right-text="保存"
-        @click-left="showForm = false"
-        @click-right="onSave"
-      />
-      <van-cell-group inset>
-        <van-field v-model="form.name" label="姓名" placeholder="请输入姓名" />
-        <van-field v-model="form.phone" label="电话" placeholder="请输入电话" type="tel" />
-        <van-field label="角色" readonly is-link @click="showRolePicker = true" :model-value="roleLabel(form.role)" />
-        <van-field v-if="form.role === 'building_manager'" v-model="form.building" label="负责楼栋" placeholder="如：3" />
-        <van-field label="当班">
-          <template #input>
-            <van-switch v-model="form.on_duty" />
-          </template>
-        </van-field>
-      </van-cell-group>
-    </van-popup>
-
-    <!-- 角色选择 -->
-    <van-action-sheet
-      v-model:show="showRolePicker"
-      :actions="roleActions"
-      @select="onRoleSelect"
-      cancel-text="取消"
-    />
+        <van-action-sheet v-model:show="showWorkerRolePicker" :actions="workerRoleActions" @select="(a: any) => { workerForm.role = a.value; showWorkerRolePicker = false }" cancel-text="取消" />
+      </van-tab>
+    </van-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
-import { workerApi, type Worker } from '@/api/index'
+import { elderApi, elderApiExt, workerApi, type Elder, type Worker } from '@/api/index'
 
-const refreshing = ref(false)
+const activeTab = ref(0)
+
+// ─── 老人管理 ───
+const elderSearch = ref('')
+const elderRefreshing = ref(false)
+const elders = ref<Elder[]>([])
+const elderFormShow = ref(false)
+const elderIsEdit = ref(false)
+const showRiskPicker = ref(false)
+const showPlanPicker = ref(false)
+
+const elderForm = ref({
+  id: '',
+  name: '',
+  gender: '女',
+  age: '',
+  phone: '',
+  building: '',
+  room: '',
+  risk_class: 'C',
+  plan_level: 'basic',
+  property_phone: '',
+})
+
+const riskActions = [
+  { name: 'A — 高风险（独居/高龄）', value: 'A' },
+  { name: 'B — 中风险', value: 'B' },
+  { name: 'C — 低风险', value: 'C' },
+]
+const planActions = [
+  { name: '全覆盖（full）', value: 'full' },
+  { name: '标准（standard）', value: 'standard' },
+  { name: '基础（basic）', value: 'basic' },
+]
+
+function riskLabel(r: string) {
+  const m: Record<string, string> = { A: '高风险', B: '中风险', C: '低风险' }
+  return m[r] || r
+}
+function riskColor(r: string) {
+  const m: Record<string, string> = { A: 'danger', B: 'warning', C: 'success' }
+  return m[r] || 'default'
+}
+function planLabel(p: string) {
+  const m: Record<string, string> = { full: '全覆盖', standard: '标准', basic: '基础' }
+  return m[p] || p
+}
+
+async function fetchElders() {
+  try {
+    const params: Record<string, unknown> = {}
+    if (elderSearch.value) params.name = elderSearch.value
+    const res = await elderApi.list(params) as unknown as { items: Elder[] }
+    elders.value = res.items || []
+  } catch (err) {
+    console.error('[Admin] fetch elders:', err)
+  }
+}
+
+function showElderAdd() {
+  elderIsEdit.value = false
+  elderForm.value = { id: '', name: '', gender: '女', age: '', phone: '', building: '', room: '', risk_class: 'C', plan_level: 'basic', property_phone: '' }
+  elderFormShow.value = true
+}
+
+function editElder(e: Elder) {
+  elderIsEdit.value = true
+  elderForm.value = {
+    id: e.id,
+    name: e.name,
+    gender: e.gender || '女',
+    age: String(e.age || ''),
+    phone: (e as any).phone || '',
+    building: e.building,
+    room: e.room,
+    risk_class: e.risk_class,
+    plan_level: e.plan_level,
+    property_phone: (e as any).property_phone || '',
+  }
+  elderFormShow.value = true
+}
+
+async function saveElder() {
+  if (!elderForm.value.name) { showToast('请输入姓名'); return }
+  if (!elderForm.value.building) { showToast('请输入楼栋'); return }
+  try {
+    const data: Record<string, unknown> = {
+      name: elderForm.value.name,
+      gender: elderForm.value.gender,
+      age: Number(elderForm.value.age) || undefined,
+      phone: elderForm.value.phone || undefined,
+      building: elderForm.value.building,
+      room: elderForm.value.room || undefined,
+      risk_class: elderForm.value.risk_class,
+      plan_level: elderForm.value.plan_level,
+      property_phone: elderForm.value.property_phone || undefined,
+    }
+    if (elderIsEdit.value) {
+      await elderApiExt.update(elderForm.value.id, data)
+      showToast('更新成功')
+    } else {
+      await elderApiExt.create(data)
+      showToast('创建成功')
+    }
+    elderFormShow.value = false
+    await fetchElders()
+  } catch {
+    showToast('操作失败')
+  }
+}
+
+async function deleteElder(e: Elder) {
+  try {
+    await showConfirmDialog({ title: '确认删除', message: `确定删除 ${e.name}？删除后不可恢复` })
+    await elderApiExt.delete(e.id)
+    showToast('已删除')
+    await fetchElders()
+  } catch { /* 取消 */ }
+}
+
+// ─── 人员管理 ───
 const filterRole = ref('')
-const showForm = ref(false)
-const showRolePicker = ref(false)
-const isEdit = ref(false)
-
+const workerRefreshing = ref(false)
 const workers = ref<Worker[]>([])
+const workerFormShow = ref(false)
+const workerIsEdit = ref(false)
+const showWorkerRolePicker = ref(false)
 
-const form = ref({
+const workerForm = ref({
   id: '',
   name: '',
   phone: '',
@@ -99,8 +245,7 @@ const roleOptions = [
   { text: '主任', value: 'director' },
   { text: '物业', value: 'property' },
 ]
-
-const roleActions = [
+const workerRoleActions = [
   { name: '社工', value: 'social_worker' },
   { name: '备班', value: 'backup' },
   { name: '楼长', value: 'building_manager' },
@@ -108,11 +253,8 @@ const roleActions = [
   { name: '物业', value: 'property' },
 ]
 
-function roleLabel(role: string): string {
-  const m: Record<string, string> = {
-    social_worker: '社工', backup: '备班',
-    building_manager: '楼长', director: '主任', property: '物业',
-  }
+function roleLabel(role: string) {
+  const m: Record<string, string> = { social_worker: '社工', backup: '备班', building_manager: '楼长', director: '主任', property: '物业' }
   return m[role] || role
 }
 
@@ -123,78 +265,62 @@ async function fetchWorkers() {
     const res = await workerApi.list(params) as unknown as { items: Worker[] }
     workers.value = res.items || []
   } catch (err) {
-    console.error('[Admin] fetch failed:', err)
+    console.error('[Admin] fetch workers:', err)
   }
 }
 
-function showAddForm() {
-  isEdit.value = false
-  form.value = { id: '', name: '', phone: '', role: 'social_worker', building: '', on_duty: false }
-  showForm.value = true
+function showWorkerAdd() {
+  workerIsEdit.value = false
+  workerForm.value = { id: '', name: '', phone: '', role: 'social_worker', building: '', on_duty: false }
+  workerFormShow.value = true
 }
 
 function editWorker(w: Worker) {
-  isEdit.value = true
-  form.value = { id: w.id, name: w.name, phone: w.phone, role: w.role, building: w.building || '', on_duty: w.on_duty }
-  showForm.value = true
+  workerIsEdit.value = true
+  workerForm.value = { id: w.id, name: w.name, phone: w.phone, role: w.role, building: w.building || '', on_duty: w.on_duty }
+  workerFormShow.value = true
 }
 
-function onRoleSelect(action: { value: string }) {
-  form.value.role = action.value
-  showRolePicker.value = false
-}
-
-async function onSave() {
-  if (!form.value.name) { showToast('请输入姓名'); return }
+async function saveWorker() {
+  if (!workerForm.value.name) { showToast('请输入姓名'); return }
   try {
-    if (isEdit.value) {
-      await workerApi.update(form.value.id, {
-        name: form.value.name,
-        phone: form.value.phone,
-        role: form.value.role,
-        building: form.value.building || undefined,
-        on_duty: form.value.on_duty,
-      })
+    const data = {
+      name: workerForm.value.name,
+      phone: workerForm.value.phone,
+      role: workerForm.value.role,
+      building: workerForm.value.building || undefined,
+      on_duty: workerForm.value.on_duty,
+    }
+    if (workerIsEdit.value) {
+      await workerApi.update(workerForm.value.id, data)
       showToast('更新成功')
     } else {
-      await workerApi.create({
-        name: form.value.name,
-        phone: form.value.phone,
-        role: form.value.role as Worker['role'],
-        building: form.value.building || undefined,
-        on_duty: form.value.on_duty,
-      })
+      await workerApi.create(data as any)
       showToast('创建成功')
     }
-    showForm.value = false
+    workerFormShow.value = false
     await fetchWorkers()
-  } catch (err: unknown) {
-    const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || '操作失败'
-    showToast(msg)
+  } catch {
+    showToast('操作失败')
   }
 }
 
-async function onDelete(w: Worker) {
+async function deleteWorker(w: Worker) {
   try {
     await showConfirmDialog({ title: '确认删除', message: `确定删除 ${w.name}？` })
     await workerApi.delete(w.id)
     showToast('已删除')
     await fetchWorkers()
-  } catch {
-    // 取消
-  }
+  } catch { /* 取消 */ }
 }
 
-async function onRefresh() {
-  await fetchWorkers()
-  refreshing.value = false
-}
-
-onMounted(() => fetchWorkers())
+onMounted(() => {
+  fetchElders()
+  fetchWorkers()
+})
 </script>
 
 <style scoped>
-.list-content { min-height: 60vh; }
-.p-12 { padding: 12px; }
-.fab-btn { position: fixed; bottom: 24px; right: 24px; z-index: 100; }
+.list-content { min-height: 50vh; padding: 12px; }
+.fab-btn { position: fixed; bottom: 80px; right: 24px; z-index: 100; }
 </style>

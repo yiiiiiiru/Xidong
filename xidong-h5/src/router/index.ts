@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -6,6 +7,12 @@ const router = createRouter({
     {
       path: '/',
       redirect: '/workbench',
+    },
+    {
+      path: '/login',
+      name: 'Login',
+      component: () => import('@/views/Login.vue'),
+      meta: { title: '登录', public: true },
     },
     {
       path: '/workbench',
@@ -59,13 +66,29 @@ const router = createRouter({
       path: '/admin',
       name: 'Admin',
       component: () => import('@/views/Admin.vue'),
-      meta: { title: '人员管理', role: 'director' },
+      meta: { title: '数据管理', role: 'director' },
     },
   ],
 })
 
 router.beforeEach((to) => {
   document.title = `${to.meta.title || '溪东养老'} - 溪东社区`
+
+  // 未登录时跳转登录页
+  if (!to.meta.public) {
+    const userStore = useUserStore()
+    if (!userStore.isLoggedIn) {
+      return '/login'
+    }
+    // 角色权限检查
+    const requiredRole = to.meta.role as string | undefined
+    if (requiredRole && userStore.role !== requiredRole && userStore.role !== 'director') {
+      // director 可以访问所有页面，social_worker 可以访问 admin
+      if (!(to.path === '/admin' && userStore.role === 'social_worker')) {
+        return '/workbench'
+      }
+    }
+  }
 })
 
 export default router

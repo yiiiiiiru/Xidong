@@ -35,6 +35,9 @@ export interface ElderRecord {
   emergency_phone: string;
   property_phone: string;
   created_at: string;
+  updated_at: string;
+  created_by: string;
+  updated_by: string;
 }
 
 // ─── 行转换 ───
@@ -56,7 +59,10 @@ function rowToElderRecord(row: Record<string, unknown> | { [key: string]: unknow
     emergency_contact: contact?.name || '',
     emergency_phone: contact?.phone || '',
     property_phone: String(row.property_phone || ''),
-    created_at: row.created_at ? String(row.created_at).slice(0, 10) : '',
+    created_at: row.created_at ? new Date(row.created_at as string).toISOString().slice(0, 10) : '',
+    updated_at: row.updated_at ? new Date(row.updated_at as string).toISOString().slice(0, 16).replace('T', ' ') : '',
+    created_by: String(row.created_by || ''),
+    updated_by: String(row.updated_by || ''),
   };
 }
 
@@ -207,7 +213,8 @@ export async function setElderStatus(
 export async function updateElder(
   elderId: string,
   data: Partial<ElderRecord>,
-  operatorRole?: string
+  operatorRole?: string,
+  operatorName?: string
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   // 权限：楼长不能编辑档案
   if (operatorRole === 'building_manager') {
@@ -232,14 +239,16 @@ export async function updateElder(
   if (data.emergency_contact) updates.emergency_contact = data.emergency_contact;
   if (data.emergency_phone) updates.emergency_phone = data.emergency_phone;
   if (data.property_phone) updates.property_phone = data.property_phone;
+  // 记录修改人
+  updates.updated_by = operatorName || 'system';
 
-  if (Object.keys(updates).length === 0) {
+  if (Object.keys(updates).length <= 1) {
     return { status: 400, body: { error: 'no fields to update' } };
   }
 
   await ElderDao.update(elderId, updates as Record<string, string>);
 
-  console.log(`[Elder] updated: ${elderId}`);
+  console.log(`[Elder] updated: ${elderId} by ${operatorName}`);
   return { status: 200, body: { success: true, elder_id: elderId, updated_fields: Object.keys(updates) } };
 }
 

@@ -92,48 +92,48 @@ function readAloud() {
 
 <style scoped>
 .alert-card {
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 .card-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .rule-id {
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
 }
 .time {
   margin-left: auto;
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
 }
 .card-body {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .elder-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .elder-name {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
 }
 .building {
-  font-size: 13px;
+  font-size: 14px;
   color: #666;
 }
 .trigger-desc {
-  font-size: 14px;
-  color: #555;
-  margin: 4px 0 0;
-  line-height: 1.5;
+  font-size: 16px;
+  color: #444;
+  margin: 6px 0 0;
+  line-height: 1.6;
 }
 .card-footer {
   display: flex;

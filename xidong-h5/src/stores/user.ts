@@ -57,11 +57,8 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('xidong_token')
   }
 
-  // 启动时自动 mock（MVP 阶段）
-  // ponytail: 生产环境删除此自动 mock，走钉钉免登
-  if (!user.value) {
-    mockLogin()
-  }
+  // ponytail: 生产环境走钉钉免登，演示环境走登录页选择角色
+  // 不再自动 mock，用户必须通过登录页选择账号
 
   return { user, token, isLoggedIn, userId, role, building, setUser, mockLogin, logout }
 })

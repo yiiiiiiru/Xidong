@@ -30,7 +30,7 @@ const routes: Route[] = [];
 
 function addRoute(method: string, path: string, handler: Route['handler'], roles?: UserRole[]) {
   const pattern = new RegExp(
-    '^' + path.replace(/:(w+)/g, '(?<$1>[^/]+)') + '$'
+    '^' + path.replace(/:([a-zA-Z_]+)/g, '(?<$1>[^/]+)') + '$'
   );
   routes.push({ method: method.toUpperCase(), pattern, handler, roles });
 }
@@ -214,13 +214,23 @@ addRoute('DELETE', '/api/meals/:id', async (_req, res, params, user) => {
 // 老人档案编辑/删除
 addRoute('PUT', '/api/elders/:id/info', async (req, res, params, user) => {
   const body = await parseBody(req) as Record<string, unknown>;
-  const result = await updateElder(params.id, body as Parameters<typeof updateElder>[1], user.role);
+  const result = await updateElder(params.id, body as Parameters<typeof updateElder>[1], user.role, user.name);
   json(res, result.status, result.body);
 }, ['social_worker', 'director']);
 
 addRoute('DELETE', '/api/elders/:id', async (_req, res, params, user) => {
   const result = await deleteElder(params.id, user.role);
   json(res, result.status, result.body);
+}, ['social_worker', 'director']);
+
+// 新增单个老人
+addRoute('POST', '/api/elders', async (req, res, _p, user) => {
+  const body = await parseBody(req);
+  if (!body.name || !body.building) { json(res, 400, { error: '姓名和楼栋必填' }); return; }
+  const { ElderDao } = await import('./db/dao.js');
+  body.created_by = user.name || user.userId;
+  const id = await ElderDao.create(body);
+  json(res, 201, { success: true, id });
 }, ['social_worker', 'director']);
 
 // 工作人员管理

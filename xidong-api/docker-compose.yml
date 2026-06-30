@@ -24,6 +24,19 @@ services:
     volumes:
       - redis_data:/data
 
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: xidong-phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: xidong
+      PMA_PASSWORD: xidong_dev
+      UPLOAD_LIMIT: 50M
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+
 volumes:
   mysql_data:
   redis_data:

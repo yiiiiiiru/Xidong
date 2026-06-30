@@ -30,10 +30,44 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// 响应拦截：统一错误处理
+// 响应拦截：统一错误处理，无后端时 fallback 到 mock
+import { getMockResponse } from './mock-data'
+
+// ponytail: 检测后端是否可用，不可用则全部走 mock；升级路径：MSW
+let backendAvailable: boolean | null = null
+
+async function checkBackend(): Promise<boolean> {
+  if (backendAvailable !== null) return backendAvailable
+  try {
+    const resp = await fetch((import.meta.env.VITE_API_BASE || '/api') + '/health', { signal: AbortSignal.timeout(1500) })
+    const ct = resp.headers.get('content-type') || ''
+    backendAvailable = resp.ok && ct.includes('json')
+  } catch {
+    backendAvailable = false
+  }
+  return backendAvailable
+}
+checkBackend()
+
+// 请求拦截：后端不可用时直接返回 mock（不发真实请求）
+api.interceptors.request.use(async (config) => {
+  const available = await checkBackend()
+  if (!available) {
+    const url = config.url || ''
+    console.warn('[API Mock] 后端不可用，使用演示数据:', url)
+    // 利用 CancelToken 中断请求，adapter 返回 mock
+    return Promise.reject({ __mock: true, url })
+  }
+  return config
+})
+
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    // mock fallback
+    if (error.__mock) {
+      return Promise.resolve(getMockResponse(error.url))
+    }
     const msg = error.response?.data?.error || '网络错误'
     console.error('[API Error]', msg, error.response?.status)
     return Promise.reject(error)
@@ -119,6 +153,7 @@ export const mealApi = {
 
 // 老人档案补充
 export const elderApiExt = {
+  create: (data: Record<string, unknown>) => api.post('/elders', data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/elders/${id}/info`, data),
   delete: (id: string) => api.delete(`/elders/${id}`),
 }
