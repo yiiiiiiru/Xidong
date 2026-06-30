@@ -98,6 +98,7 @@ export interface Elder {
   room: string
   risk_class: 'A' | 'B' | 'C'
   plan_level: 'full' | 'standard' | 'basic'
+  assignments?: Array<{ worker_id: string; worker_name: string; role: string }>
 }
 
 // 告警 API
@@ -175,6 +176,22 @@ export const workerApi = {
   create: (data: Partial<Worker>) => api.post('/workers', data),
   update: (id: string, data: Partial<Worker>) => api.put(`/workers/${id}`, data),
   delete: (id: string) => api.delete(`/workers/${id}`),
+}
+
+// 老人负责人分配 API
+export interface Assignment {
+  worker_id: string
+  worker_name: string
+  role: string
+}
+
+export const assignmentApi = {
+  list: (elderId: string) => api.get(`/elders/${elderId}/assignments`),
+  assign: (elderId: string, data: { worker_id: string; role?: string }) =>
+    api.post(`/elders/${elderId}/assignments`, data),
+  remove: (elderId: string, workerId: string) =>
+    api.delete(`/elders/${elderId}/assignments/${workerId}`),
+  myElders: () => api.get('/my-elders'),
 }
 
 export default api

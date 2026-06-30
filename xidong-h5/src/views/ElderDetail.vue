@@ -32,6 +32,22 @@
         <van-cell title="长期居家" :value="elder.is_homebound ? '是' : '否'" />
       </van-cell-group>
 
+      <!-- 负责人 -->
+      <van-cell-group inset title="负责人" class="mt-8">
+        <van-cell
+          v-for="a in assignments"
+          :key="a.worker_id"
+          :title="a.worker_name"
+          :label="a.role || '负责人'"
+        >
+          <template #right-icon>
+            <van-icon v-if="canManage" name="delete-o" color="#ee0a24" @click.stop="removeAssignment(a.worker_id)" />
+          </template>
+        </van-cell>
+        <van-cell v-if="canManage" title="分配负责人" is-link icon="add-o" @click="showAssignPopup = true" />
+        <van-empty v-if="!assignments.length && !canManage" description="暂无负责人" image="search" />
+      </van-cell-group>
+
       <!-- 紧急联系人 -->
       <van-cell-group inset title="紧急联系人" class="mt-8">
         <van-cell
@@ -141,22 +157,95 @@
     <van-popup v-model:show="showRiskPicker" position="bottom" round>
       <van-picker :columns="riskColumns" @confirm="onRiskConfirm" @cancel="showRiskPicker = false" />
     </van-popup>
+
+    <!-- 分配负责人弹窗 -->
+    <van-popup v-model:show="showAssignPopup" position="bottom" round :style="{ maxHeight: '60%' }">
+      <div class="assign-popup">
+        <van-nav-bar title="选择负责人" left-text="取消" @click-left="showAssignPopup = false" />
+        <van-cell-group>
+          <van-cell
+            v-for="w in availableWorkers"
+            :key="w.id"
+            :title="w.name"
+            :label="workerRoleLabel(w.role)"
+            is-link
+            @click="doAssign(w)"
+          />
+        </van-cell-group>
+        <van-empty v-if="!availableWorkers.length" description="无可分配人员" />
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showToast, showSuccessToast } from 'vant'
-import { elderApi, elderApiExt } from '@/api/index'
+import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
+import { elderApi, elderApiExt, assignmentApi, workerApi, type Worker } from '@/api/index'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const elderId = route.params.id as string
 const showStatusModal = ref(false)
 const showEdit = ref(false)
 const showPlanPicker = ref(false)
 const showRiskPicker = ref(false)
+const showAssignPopup = ref(false)
+
+// 角色权限：社工/主任可管理负责人
+const canManage = computed(() => userStore.role === 'director' || userStore.role === 'social_worker')
+
+// 负责人列表
+const assignments = ref<Array<{ worker_id: string; worker_name: string; role: string }>>([])
+const allWorkers = ref<Worker[]>([])
+const availableWorkers = computed(() =>
+  allWorkers.value.filter(w => !assignments.value.find(a => a.worker_id === w.id))
+)
+
+function workerRoleLabel(role: string): string {
+  const m: Record<string, string> = {
+    social_worker: '社工', backup: '备班', building_manager: '楼长', director: '主任', property: '物业',
+  }
+  return m[role] || role
+}
+
+async function fetchAssignments() {
+  try {
+    const res = await assignmentApi.list(elderId) as unknown as { items: Array<{ worker_id: string; worker_name: string; role: string }> }
+    assignments.value = res.items || []
+  } catch { /* ignore */ }
+}
+
+async function fetchWorkers() {
+  try {
+    const res = await workerApi.list() as unknown as { items: Worker[] }
+    allWorkers.value = res.items || []
+  } catch { /* ignore */ }
+}
+
+async function doAssign(worker: Worker) {
+  const roleLabel = workerRoleLabel(worker.role)
+  try {
+    await assignmentApi.assign(elderId, { worker_id: worker.id, role: roleLabel })
+    showSuccessToast(`已分配: ${worker.name}`)
+    showAssignPopup.value = false
+    await fetchAssignments()
+  } catch {
+    showToast('分配失败')
+  }
+}
+
+async function removeAssignment(workerId: string) {
+  try {
+    await showConfirmDialog({ title: '确认移除', message: '确定移除该负责人？' })
+    await assignmentApi.remove(elderId, workerId)
+    showSuccessToast('已移除')
+    await fetchAssignments()
+  } catch { /* cancel or error */ }
+}
 
 interface ElderDetail {
   id: string; name: string; gender: string; age: number;
@@ -369,7 +458,11 @@ function callPhone(phone: string) {
   showToast(`拨打 ${phone}（TODO: 钉钉双呼）`)
 }
 
-onMounted(() => fetchDetail())
+onMounted(() => {
+  fetchDetail()
+  fetchAssignments()
+  fetchWorkers()
+})
 </script>
 
 <style scoped>
@@ -391,5 +484,8 @@ onMounted(() => fetchDetail())
 }
 .ml-8 {
   margin-left: 8px;
+}
+.assign-popup {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 </style>

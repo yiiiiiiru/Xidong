@@ -1,6 +1,6 @@
 <template>
   <div class="elder-list">
-    <van-nav-bar title="老人档案" fixed placeholder />
+    <van-nav-bar :title="isDirector ? '全部老人' : '我负责的老人'" fixed placeholder />
 
     <!-- 搜索栏 -->
     <van-search v-model="keyword" placeholder="搜索姓名/楼幢号" shape="round" />
@@ -26,9 +26,16 @@
             @click="goDetail(elder.id)"
           >
             <template #value>
-              <van-tag :type="planTagType(elder.plan_level)">
-                {{ planLabel(elder.plan_level) }}
-              </van-tag>
+              <div class="cell-right">
+                <div v-if="elder.assignments && elder.assignments.length" class="assign-tags">
+                  <van-tag v-for="a in elder.assignments" :key="a.worker_id" plain type="primary" class="assign-tag">
+                    {{ a.role ? `${a.role}: ${a.worker_name}` : a.worker_name }}
+                  </van-tag>
+                </div>
+                <van-tag :type="planTagType(elder.plan_level)">
+                  {{ planLabel(elder.plan_level) }}
+                </van-tag>
+              </div>
             </template>
           </van-cell>
         </van-cell-group>
@@ -45,9 +52,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppTabbar from '@/components/AppTabbar.vue'
-import { elderApi, type Elder } from '@/api/index'
+import { elderApi, assignmentApi, type Elder } from '@/api/index'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
+const isDirector = computed(() => userStore.role === 'director')
+
 const keyword = ref('')
 const refreshing = ref(false)
 const filterBuilding = ref('')
@@ -70,11 +81,29 @@ const levelOptions = [
 
 async function fetchElders() {
   try {
-    const params: Record<string, unknown> = {}
-    if (filterBuilding.value) params.building = filterBuilding.value
-    if (filterLevel.value) params.plan_level = filterLevel.value
-    const res = await elderApi.list(params) as unknown as { items: Elder[] }
-    elders.value = res.items || []
+    if (isDirector.value) {
+      // 主任看全部
+      const params: Record<string, unknown> = {}
+      if (filterBuilding.value) params.building = filterBuilding.value
+      if (filterLevel.value) params.plan_level = filterLevel.value
+      const res = await elderApi.list(params) as unknown as { items: Elder[] }
+      elders.value = res.items || []
+    } else {
+      // 其他角色只看自己负责的
+      const res = await assignmentApi.myElders() as unknown as { items: Array<Elder & { elder_name: string; elder_id: string }> }
+      elders.value = (res.items || []).map(item => ({
+        id: item.elder_id || item.id,
+        name: item.elder_name || item.name,
+        gender: item.gender || '',
+        age: item.age || 0,
+        building: item.building || '',
+        unit: item.unit || '',
+        room: item.room || '',
+        risk_class: item.risk_class || 'C',
+        plan_level: item.plan_level || 'basic',
+        assignments: item.assignments,
+      }))
+    }
   } catch (err) {
     console.error('[ElderList] fetch failed:', err)
   }
@@ -82,7 +111,10 @@ async function fetchElders() {
 
 const filteredList = computed(() => {
   return elders.value.filter((e) => {
-    if (keyword.value && !e.name.includes(keyword.value) && !e.building.includes(keyword.value)) return false
+    if (keyword.value && !e.name.includes(keyword.value) && !e.building?.includes(keyword.value)) return false
+    if (!isDirector.value) return true
+    if (filterBuilding.value && e.building !== filterBuilding.value) return false
+    if (filterLevel.value && e.plan_level !== filterLevel.value) return false
     return true
   })
 })
@@ -120,5 +152,20 @@ onMounted(() => fetchElders())
 }
 .list-content {
   min-height: 60vh;
+}
+.cell-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.assign-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: flex-end;
+}
+.assign-tag {
+  font-size: 11px;
 }
 </style>

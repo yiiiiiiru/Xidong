@@ -233,6 +233,44 @@ addRoute('POST', '/api/elders', async (req, res, _p, user) => {
   json(res, 201, { success: true, id });
 }, ['social_worker', 'director']);
 
+// ─── 老人负责人分配 ───
+
+// 查询某老人的负责人列表
+addRoute('GET', '/api/elders/:id/assignments', async (_req, res, params, _u) => {
+  const { ElderAssignmentDao } = await import('./db/dao.js');
+  const rows = await ElderAssignmentDao.findByElder(params.id);
+  json(res, 200, { items: rows });
+});
+
+// 分配负责人
+addRoute('POST', '/api/elders/:id/assignments', async (req, res, params, user) => {
+  const body = await parseBody(req);
+  if (!body.worker_id) { json(res, 400, { error: 'worker_id 必填' }); return; }
+  const { ElderAssignmentDao } = await import('./db/dao.js');
+  await ElderAssignmentDao.assign(params.id, body.worker_id, body.role, user.name || user.userId);
+  json(res, 201, { success: true });
+}, ['social_worker', 'director']);
+
+// 移除负责人
+addRoute('DELETE', '/api/elders/:id/assignments/:worker_id', async (_req, res, params, _u) => {
+  const { ElderAssignmentDao } = await import('./db/dao.js');
+  const ok = await ElderAssignmentDao.remove(params.id, params.worker_id);
+  json(res, ok ? 200 : 404, ok ? { success: true } : { error: 'not found' });
+}, ['social_worker', 'director']);
+
+// 我负责的老人
+addRoute('GET', '/api/my-elders', async (_req, res, _p, user) => {
+  const { ElderAssignmentDao, WorkerDao } = await import('./db/dao.js');
+  // 通过 userId 找到对应的 worker 记录
+  const workers = await WorkerDao.findAll({});
+  const worker = (workers.items as Array<{id: string; dingtalk_user_id: string | null}>).find(
+    w => w.id === user.userId || w.dingtalk_user_id === user.userId
+  );
+  if (!worker) { json(res, 200, { items: [], total: 0 }); return; }
+  const rows = await ElderAssignmentDao.findByWorker(worker.id);
+  json(res, 200, { items: rows, total: rows.length });
+});
+
 // 工作人员管理
 addRoute('GET', '/api/workers', async (req, res, _p, _u) => {
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);

@@ -11,7 +11,7 @@
  * Redis 仅保留: state:{elderId} (规则引擎) + evt:{elderId} (事件窗口)
  */
 import type { ElderStatusType, PlanLevel, RiskClass, PaginatedResponse } from '../types/index.js';
-import { ElderDao, ElderStatusDao, EmergencyContactDao } from '../db/dao.js';
+import { ElderDao, ElderStatusDao, EmergencyContactDao, ElderAssignmentDao } from '../db/dao.js';
 import redis, { RedisKeys } from '../db/redis.js';
 
 // ─── 数据结构（API 输出层）───
@@ -96,7 +96,13 @@ export async function listElders(query: {
   for (const row of rows) {
     const contacts = await EmergencyContactDao.findByElderId(row.id);
     const first = contacts[0] as { name: string; phone: string } | undefined;
-    elders.push(rowToElderRecord(row as unknown as Record<string, unknown>, first));
+    const elder = rowToElderRecord(row as unknown as Record<string, unknown>, first);
+    // 附带负责人
+    const assigns = await ElderAssignmentDao.findByElder(row.id);
+    (elder as Record<string, unknown>).assignments = assigns.map(a => ({
+      worker_id: a.worker_id, worker_name: a.worker_name, role: a.role,
+    }));
+    elders.push(elder);
   }
 
   return { status: 200, body: { items: elders, total, page: query.page || 1, pageSize: query.pageSize || 20 } };
@@ -140,7 +146,7 @@ export async function getElderDetail(
     devices.push({ devId: key.replace('device_map:', ''), ...d });
   }
 
-  return { status: 200, body: { ...elder, devices, emergency_contacts: contacts } };
+  return { status: 200, body: { ...elder, devices, emergency_contacts: contacts, assignments: (await ElderAssignmentDao.findByElder(elderId)).map(a => ({ worker_id: a.worker_id, worker_name: a.worker_name, role: a.role })) } };
 }
 
 // ─── POST /api/elders/import ───

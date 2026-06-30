@@ -617,3 +617,48 @@ export const DeviceDao = {
     await pool.execute(`DELETE FROM device WHERE id = ?`, [id]);
   },
 };
+
+// ─── Elder Assignment DAO ───
+
+export const ElderAssignmentDao = {
+  async findByElder(elderId: string): Promise<RowDataPacket[]> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `SELECT ea.*, sw.name as worker_name, sw.role as worker_role
+       FROM elder_assignment ea
+       JOIN social_worker sw ON ea.worker_id = sw.id
+       WHERE ea.elder_id = ?
+       ORDER BY ea.created_at ASC`,
+      [elderId]
+    );
+    return rows;
+  },
+
+  async findByWorker(workerId: string): Promise<RowDataPacket[]> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `SELECT ea.*, e.name as elder_name, e.building, e.room, e.risk_class, e.plan_level
+       FROM elder_assignment ea
+       JOIN elder e ON ea.elder_id = e.id
+       WHERE ea.worker_id = ?
+       ORDER BY e.building, e.room`,
+      [workerId]
+    );
+    return rows;
+  },
+
+  async assign(elderId: string, workerId: string, role?: string, assignedBy?: string): Promise<void> {
+    await pool.execute(
+      `INSERT INTO elder_assignment (elder_id, worker_id, role, assigned_by)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE role = VALUES(role), assigned_by = VALUES(assigned_by)`,
+      [elderId, workerId, role || null, assignedBy || null]
+    );
+  },
+
+  async remove(elderId: string, workerId: string): Promise<boolean> {
+    const [result] = await pool.execute<ResultSetHeader>(
+      `DELETE FROM elder_assignment WHERE elder_id = ? AND worker_id = ?`,
+      [elderId, workerId]
+    );
+    return result.affectedRows > 0;
+  },
+};
