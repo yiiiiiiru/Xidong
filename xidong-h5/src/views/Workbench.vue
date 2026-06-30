@@ -72,14 +72,15 @@ async function fetchAlerts() {
   }
 }
 
+// ponytail: 只有 pending 才是"待处理"，其余都算"已处理"
 const urgentAlerts = computed(() =>
-  alerts.value.filter((a) => a.level === 'P0' && !a.status.startsWith('closed'))
+  alerts.value.filter((a) => a.level === 'P0' && a.status === 'pending')
 )
 const warningAlerts = computed(() =>
-  alerts.value.filter((a) => (a.level === 'P1' || a.level === 'P2') && !a.status.startsWith('closed'))
+  alerts.value.filter((a) => (a.level === 'P1' || a.level === 'P2') && a.status === 'pending')
 )
 const closedAlerts = computed(() =>
-  alerts.value.filter((a) => a.status === 'closed' || a.status === 'closed_false_positive')
+  alerts.value.filter((a) => a.status !== 'pending')
 )
 const urgentCount = computed(() => urgentAlerts.value.length)
 const warningCount = computed(() => warningAlerts.value.length)

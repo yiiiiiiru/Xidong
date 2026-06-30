@@ -143,6 +143,14 @@ const actionOptions = computed(() => {
   ]
 })
 
+const ACTION_TO_STATUS: Record<string, string> = {
+  acknowledge: 'processing',
+  safe: 'closed',
+  false_positive: 'closed_false_positive',
+  dispatch: 'dispatched',
+  visit_done: 'closed',
+}
+
 async function onAction(action: { value: string }) {
   showActionSheet.value = false
   if (action.value === 'false_positive') {
@@ -151,8 +159,10 @@ async function onAction(action: { value: string }) {
   }
   try {
     await alertApi.handle(alertId, { action: action.value })
+    // 立即更新本地状态，让用户看到变化
+    alert.value.status = ACTION_TO_STATUS[action.value] || alert.value.status
     showToast('操作成功')
-    setTimeout(() => router.back(), 800)
+    setTimeout(() => router.replace('/workbench'), 1200)
   } catch (err) {
     showToast('操作失败')
   }
@@ -165,9 +175,10 @@ async function onConfirmFp() {
       false_positive_reason: fpReason.value || 'other',
       note: fpReason.value,
     })
+    alert.value.status = 'closed_false_positive'
     showToast('已标记误报')
     fpReason.value = ''
-    setTimeout(() => router.back(), 800)
+    setTimeout(() => router.replace('/workbench'), 1200)
   } catch (err) {
     showToast('操作失败')
   }

@@ -476,12 +476,14 @@ export const AlertDao = {
 
   async create(data: Partial<AlertRow>): Promise<string> {
     const id = data.id || `ALT_${Date.now().toString(36)}`;
+    // ponytail: MySQL DATETIME 不接受 ISO 格式的 T/Z
+    const triggeredAt = (data.triggered_at || new Date().toISOString()).replace('T', ' ').replace('Z', '');
     await pool.execute(
       `INSERT INTO alert (id, elder_id, rule_id, level, status, trigger_desc, context_json, triggered_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, data.elder_id, data.rule_id, data.level, data.status || 'pending',
         data.trigger_desc || '', data.context_json || null,
-        data.triggered_at || new Date().toISOString()] as SqlParams
+        triggeredAt] as SqlParams
     );
     return id;
   },

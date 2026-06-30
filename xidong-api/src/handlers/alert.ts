@@ -192,7 +192,7 @@ export async function handleAlert(
   }
 
   const newStatus = ACTION_TO_STATUS[action];
-  const now = new Date().toISOString();
+  const now = new Date().toISOString().replace('T', ' ').replace('Z', '');
 
   // MySQL 更新
   const updates: Record<string, string> = {
