@@ -4,6 +4,22 @@
 
 ---
 
+## 4. fix(h5): 前端 P0 体验优化
+**提交**: `c88b7cc` | **日期**: 2026-07-01
+
+### 变更内容
+- 适老模式从 `zoom: 1.3` 改为 Vant CSS 变量方案，解决 Popup/固定定位元素溢出
+- 语音播报按钮触摸目标 32px → 44px（iOS HIG 标准）
+- Workbench/ElderList 添加 loading 骨架屏
+- 全局颜色对比度修复（`#999` → `#666`，达 WCAG AA）
+- App.vue 添加全局断网状态提示条
+- 修复 Login.vue `tagType` 类型错误
+
+### 涉及文件（12 files）
+`src/App.vue`, `src/styles/theme.css`, `src/views/{Workbench,ElderList,AlertDetail,Login,MealCheck,Me}.vue`, `src/views/building/BuildingAlerts.vue`, `src/components/{AlertCard,Timeline}.vue`
+
+---
+
 ## 3. perf: P0+P1+P2 全面优化
 **提交**: `d6134c3` | **日期**: 2026-07-01
 
