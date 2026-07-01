@@ -46,7 +46,7 @@ function rowToElderRecord(row: Record<string, unknown> | { [key: string]: unknow
   return {
     id: String(row.id),
     name: String(row.name || ''),
-    gender: row.gender === '男' ? 'F' : 'M',
+    gender: row.gender === '男' ? 'M' : 'F',
     age: Number(row.age) || 0,
     phone: String(row.phone || ''),
     id_card_last4: String(row.id_card || '').slice(-4) || '0000',

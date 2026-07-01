@@ -89,7 +89,7 @@ export function getMockResponse(url: string): unknown {
     return { items: mockAlerts, total: mockAlerts.length }
   }
   if (url.includes('/elders/')) {
-    return { ...mockElders[0], emergency_contacts: [{ name: '张小明', relation: '儿子', phone: '138****1234' }], devices: [{ type: 'bed', location: '卧室', online: true, battery_pct: 85 }] }
+    return { ...mockElders[0], emergency_contacts: [{ name: '张小明', relation: '儿子', phone: '138****1234' }], devices: [{ devId: 'DEV_1_BED', deviceType: 'bed_sensor', location: '卧室' }] }
   }
   if (url.includes('/elders')) {
     return { items: mockElders, total: mockElders.length }

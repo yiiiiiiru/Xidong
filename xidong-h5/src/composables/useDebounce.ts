@@ -1,7 +1,7 @@
 /**
  * 防抖 composable — 搜索输入延迟触发
  */
-import { ref, watch, type Ref } from 'vue'
+import { ref, watch, onScopeDispose, type Ref } from 'vue'
 
 /**
  * 对一个 ref 进行防抖，返回延迟后的值
@@ -17,6 +17,11 @@ export function useDebouncedRef<T>(source: Ref<T>, ms = 300): Ref<T> {
     timer = setTimeout(() => {
       debounced.value = val
     }, ms)
+  })
+
+  // 组件卸载时清除未执行的定时器，防止内存泄漏
+  onScopeDispose(() => {
+    clearTimeout(timer)
   })
 
   return debounced
