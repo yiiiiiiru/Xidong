@@ -4,6 +4,40 @@
 
 ---
 
+## 3. perf: P0+P1+P2 全面优化
+**提交**: `d6134c3` | **日期**: 2026-07-01
+
+### P0 — 安全与性能
+- 修复 alert/meal/elder 列表 N+1 查询（21次→2次 DB 调用）
+- CORS 白名单 + 环境感知配置
+- 内部 API Token 防护（`INTERNAL_API_TOKEN`）
+- 钉钉 Webhook HmacSHA256 签名验证
+
+### P1 — 代码质量
+- 提取 `useAlertMaps` composable，消除 6 处重复映射
+- 新增数据库复合索引（`002_indexes.sql`）
+- 统一错误响应工具（`AppError`）
+
+### P2 — 可维护性与体验
+- 新增 `utils/constants.ts` 集中管理前端业务常量
+- 7 个视图补充 `showToast` 错误提示
+- `AlertCard.vue` 使用 composable 精简 36 行
+- 后端 `listElders` N+1 修复（批量 `findByElderIds`）
+- 后端魔法值配置化（`QUIET_HOURS` / `ESCALATION_*`）
+- API 响应类型增强（`PaginatedResponse<T>` 泛型）
+- 消除 12 处 `as unknown as` 类型断言
+
+### 涉及文件（26 files, +758 −307）
+| 模块 | 关键文件 |
+|------|----------|
+| xidong-api | `src/index.ts`, `src/handlers/{alert,meal,elder,webhook}.ts`, `src/db/dao.ts`, `src/services/{notify,escalation}.ts`, `src/utils/api-response.ts`, `migrations/002_indexes.sql` |
+| xidong-h5 | `src/api/index.ts`, `src/utils/constants.ts`, `src/composables/useAlertMaps.ts`, `src/components/AlertCard.vue`, `src/views/{Admin,AlertDetail,ElderDetail,ElderList,FpStats,Me,MealCheck,Workbench,building/BuildingAlerts}.vue` |
+
+### 新增环境变量
+`CORS_ORIGINS`, `INTERNAL_API_TOKEN`, `QUIET_HOURS`, `ESCALATION_TIMEOUT_SEC`, `ESCALATION_MAX_ROUNDS`
+
+---
+
 ## 1. feat: 老人负责人关联功能
 **提交**: pending | **日期**: 2026-06-30
 
