@@ -71,6 +71,7 @@ import { showToast } from 'vant'
 import dayjs from 'dayjs'
 import { alertApi, type Alert } from '@/api/index'
 import Timeline from '@/components/Timeline.vue'
+import { getLevelLabel, getLevelTagType, getLevelBgClass, getStatusLabel, getStatusTagType } from '@/composables/useAlertMaps'
 
 const route = useRoute()
 const router = useRouter()
@@ -96,37 +97,21 @@ const alert = ref<Alert & { timeline?: Array<{ event: string; ts: string; operat
 async function fetchDetail() {
   loading.value = true
   try {
-    const res = await alertApi.detail(alertId) as unknown as (Alert & { timeline?: Array<{ event: string; ts: string; operator?: string; note?: string }> })
+    const res = await alertApi.detail(alertId)
     alert.value = res
   } catch (err) {
     console.error('[AlertDetail] fetch failed:', err)
+    showToast('告警详情加载失败')
   } finally {
     loading.value = false
   }
 }
 
-const levelBgClass = computed(() => `level-bg-${alert.value.level.toLowerCase()}`)
-const levelTagType = computed(() => {
-  const m: Record<string, 'danger' | 'warning' | 'primary'> = { P0: 'danger', P1: 'warning', P2: 'primary' }
-  return m[alert.value.level] || 'primary'
-})
-const levelLabel = computed(() => {
-  const m: Record<string, string> = { P0: '紧急', P1: '注意', P2: '提示' }
-  return m[alert.value.level] || alert.value.level
-})
-const statusLabel = computed(() => {
-  const m: Record<string, string> = {
-    pending: '待处理', processing: '处理中', closed: '已关闭',
-    closed_false_positive: '误报关闭', dispatched: '已派单',
-  }
-  return m[alert.value.status] || alert.value.status
-})
-const statusType = computed(() => {
-  const m: Record<string, 'danger' | 'warning' | 'success' | 'primary'> = {
-    pending: 'danger', processing: 'warning', closed: 'success', dispatched: 'primary',
-  }
-  return m[alert.value.status] || 'primary'
-})
+const levelBgClass = computed(() => getLevelBgClass(alert.value.level))
+const levelTagType = computed(() => getLevelTagType(alert.value.level))
+const levelLabel = computed(() => getLevelLabel(alert.value.level))
+const statusLabel = computed(() => getStatusLabel(alert.value.status))
+const statusType = computed(() => getStatusTagType(alert.value.status))
 const formattedTime = computed(() => dayjs(alert.value.triggered_at).format('YYYY-MM-DD HH:mm:ss'))
 
 const actionOptions = computed(() => {

@@ -17,8 +17,8 @@ import { initiateVoiceCall, sendInteractiveCard } from './dingtalk.js';
 import { notifyAlert } from './notify.js';
 import { WorkerDao } from '../db/dao.js';
 
-const CALL_TIMEOUT_SEC = 60;
-const MAX_ROUNDS = 3;
+const CALL_TIMEOUT_SEC = Number(process.env.ESCALATION_TIMEOUT_SEC) || 60;
+const MAX_ROUNDS = Number(process.env.ESCALATION_MAX_ROUNDS) || 3;
 
 export interface EscalationContext {
   alertId: string;

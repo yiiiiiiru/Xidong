@@ -151,6 +151,7 @@ import AppTabbar from '@/components/AppTabbar.vue'
 import { statsApi } from '@/api/index'
 import { useUserStore } from '@/stores/user'
 import { isElderMode, toggleElderMode } from '@/utils/accessibility'
+import { getWorkerRoleLabel } from '@/composables/useAlertMaps'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -161,16 +162,7 @@ const userInfo = computed(() => ({
   userId: userStore.userId || '',
 }))
 
-const roleLabel = computed(() => {
-  const m: Record<string, string> = {
-    social_worker: '社工',
-    backup: '值班人',
-    building_manager: '楼长',
-    director: '主任',
-    property: '物业',
-  }
-  return m[userInfo.value.role] || userInfo.value.role
-})
+const roleLabel = computed(() => getWorkerRoleLabel(userInfo.value.role))
 
 const stats = ref({
   pending: 0,
@@ -181,10 +173,7 @@ const stats = ref({
 
 async function fetchStats() {
   try {
-    const res = await statsApi.me() as unknown as {
-      pending_count: number; processing_count: number;
-      closed_today: number; total_elders: number;
-    }
+    const res = await statsApi.me()
     stats.value = {
       pending: res.pending_count,
       processing: res.processing_count,
@@ -193,6 +182,7 @@ async function fetchStats() {
     }
   } catch (err) {
     console.error('[Me] fetch stats failed:', err)
+    showToast('统计数据加载失败')
   }
 }
 

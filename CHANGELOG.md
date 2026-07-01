@@ -107,12 +107,46 @@
 
 ---
 
+## 8. refactor: P0+P1 代码优化（性能/安全/DRY）
+**提交**: pending | **日期**: 2026-07-01
+
+### P0 安全与性能修复
+- **N+1 查询修复**：alert/meal 列表批量查询老人信息，20条从 21次DB → 2次
+- **CORS 白名单**：生产环境仅允许 `CORS_ORIGINS` 白名单域名
+- **内部 API 防护**：生产环境禁用 /api/internal/*；开发环境支持 Token 验证
+- **钉钉签名验证**：实现 HmacSHA256 回调签名 + 时间戳过期检查
+
+### P1 代码质量优化
+- **前端 DRY**：提取 `composables/useAlertMaps.ts` 消除 5+ 组件中重复的状态/等级映射
+- **数据库索引**：新增 7 个复合索引优化工作台和统计查询
+- **统一错误格式**：创建 `utils/api-response.ts` 标准化 API 错误响应
+- **路由注册器**：创建 `routes/registry.ts` 为路由模块化打基础
+
+### 代码变更
+| 文件 | 变更 |
+|------|------|
+| `xidong-api/src/handlers/alert.ts` | 修复 N+1，批量 findByIds + Map |
+| `xidong-api/src/handlers/meal.ts` | 修复 N+1，同上 |
+| `xidong-api/src/db/dao.ts` | 新增 ElderDao.findByIds |
+| `xidong-api/src/index.ts` | CORS 白名单 + 内部 API Token 防护 |
+| `xidong-api/src/handlers/webhook.ts` | 实现钉钉签名验证 |
+| `xidong-api/.env.example` | 新增 CORS_ORIGINS、INTERNAL_API_TOKEN |
+| `xidong-api/migrations/002_indexes.sql` | 新增 7 个性能索引 |
+| `xidong-api/src/utils/api-response.ts` | 统一错误响应工具 |
+| `xidong-api/src/routes/registry.ts` | 路由注册器（模块化基础） |
+| `xidong-h5/src/composables/useAlertMaps.ts` | 状态/等级映射统一函数 |
+| `xidong-h5/src/views/AlertDetail.vue` | 改用 composable |
+| `xidong-h5/src/views/ElderDetail.vue` | 改用 composable |
+| `xidong-h5/src/views/building/BuildingAlerts.vue` | 改用 composable |
+
+---
+
 ## 统计
 
 | 指标 | 数值 |
 |------|------|
-| 总提交数 | 7 |
-| 新增文件 | 5 |
-| 修改文件 | 34 |
-| 代码新增行 | ~1,500+ |
-| 时间跨度 | 2026-06-26 ~ 2026-06-30 |
+| 总提交数 | 8 |
+| 新增文件 | 9 |
+| 修改文件 | 41 |
+| 代码新增行 | ~1,800+ |
+| 时间跨度 | 2026-06-26 ~ 2026-07-01 |

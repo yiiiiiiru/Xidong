@@ -87,11 +87,20 @@ export async function listAlerts(query: {
     pageSize: query.pageSize,
   });
 
+  // 批量查询关联老人（修复 N+1）
+  const elderIds = [...new Set(rows.map(r => r.elder_id))];
+  const elderMap = new Map<string, { name: string; building: string }>();
+  if (elderIds.length > 0) {
+    const elders = await ElderDao.findByIds(elderIds);
+    for (const e of elders) {
+      elderMap.set(e.id, { name: e.name, building: e.building });
+    }
+  }
+
   // 转换为 AlertRecord
-  const alerts: AlertRecord[] = [];
-  for (const row of rows) {
-    const elder = await ElderDao.findById(row.elder_id);
-    alerts.push({
+  const alerts: AlertRecord[] = rows.map(row => {
+    const elder = elderMap.get(row.elder_id);
+    return {
       id: row.id,
       elder_id: row.elder_id,
       elder_name: elder?.name || '',
@@ -105,8 +114,8 @@ export async function listAlerts(query: {
       handler_id: row.handler_id || undefined,
       note: row.handler_note || undefined,
       false_positive_reason: row.false_positive_reason as FalsePositiveReason | undefined,
-    });
-  }
+    };
+  });
 
   return { status: 200, body: { items: alerts, total, page: query.page || 1, pageSize: query.pageSize || 20 } };
 }

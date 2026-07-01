@@ -50,6 +50,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { showToast } from 'vant'
 import AlertCard from '@/components/AlertCard.vue'
 import AppTabbar from '@/components/AppTabbar.vue'
 import { alertApi, type Alert } from '@/api/index'
@@ -63,10 +64,11 @@ const loading = ref(false)
 async function fetchAlerts() {
   loading.value = true
   try {
-    const res = await alertApi.list() as unknown as { items: Alert[] }
+    const res = await alertApi.list()
     alerts.value = res.items || []
   } catch (err) {
     console.error('[Workbench] fetch alerts failed:', err)
+    showToast('告警加载失败，请下拉刷新')
   } finally {
     loading.value = false
   }

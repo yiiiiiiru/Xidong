@@ -184,6 +184,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
 import { elderApi, elderApiExt, assignmentApi, workerApi, type Worker } from '@/api/index'
 import { useUserStore } from '@/stores/user'
+import { getPlanLabel, getPlanTagType, getRiskTagType, getElderStatusLabel, getElderStatusTagType, getWorkerRoleLabel } from '@/composables/useAlertMaps'
+import { PLAN_PICKER_COLUMNS, RISK_PICKER_COLUMNS, DEVICE_TYPE_LABELS, ELDER_STATUS_ACTIONS } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -206,24 +208,25 @@ const availableWorkers = computed(() =>
 )
 
 function workerRoleLabel(role: string): string {
-  const m: Record<string, string> = {
-    social_worker: '社工', backup: '备班', building_manager: '楼长', director: '主任', property: '物业',
-  }
-  return m[role] || role
+  return getWorkerRoleLabel(role)
 }
 
 async function fetchAssignments() {
   try {
-    const res = await assignmentApi.list(elderId) as unknown as { items: Array<{ worker_id: string; worker_name: string; role: string }> }
-    assignments.value = res.items || []
-  } catch { /* ignore */ }
+    const res = await assignmentApi.list(elderId)
+    assignments.value = (res.items || []) as Array<{ worker_id: string; worker_name: string; role: string }>
+  } catch {
+    showToast('负责人加载失败')
+  }
 }
 
 async function fetchWorkers() {
   try {
-    const res = await workerApi.list() as unknown as { items: Worker[] }
+    const res = await workerApi.list()
     allWorkers.value = res.items || []
-  } catch { /* ignore */ }
+  } catch {
+    showToast('人员列表加载失败')
+  }
 }
 
 async function doAssign(worker: Worker) {
@@ -333,17 +336,9 @@ async function submitEdit() {
 
 // ─── Picker 配置 ───
 
-const planColumns = [
-  { text: '全护理', value: 'full' },
-  { text: '标准', value: 'standard' },
-  { text: '基础', value: 'basic' },
-]
+const planColumns = PLAN_PICKER_COLUMNS
 
-const riskColumns = [
-  { text: 'A级（高风险）', value: 'A' },
-  { text: 'B级（中风险）', value: 'B' },
-  { text: 'C级（低风险）', value: 'C' },
-]
+const riskColumns = RISK_PICKER_COLUMNS
 
 const planPickerLabel = computed(() => {
   const m: Record<string, string> = { full: '全护理', standard: '标准', basic: '基础' }
@@ -387,8 +382,7 @@ const devices = computed(() =>
 )
 
 function deviceLabel(type: string): string {
-  const m: Record<string, string> = { door: '入户门磁', bed: '床垫压感', pir: '人体传感器', button: '床头按钮' }
-  return m[type] || type
+  return DEVICE_TYPE_LABELS[type] || type
 }
 
 async function fetchDetail() {
@@ -397,49 +391,23 @@ async function fetchDetail() {
     elder.value = res
   } catch (err) {
     console.error('[ElderDetail] fetch failed:', err)
+    showToast('档案详情加载失败')
   }
 }
 
 // ─── 计算属性 ───
 
-const planTagType = computed(() => {
-  const m: Record<string, 'danger' | 'warning' | 'primary'> = {
-    full: 'danger', standard: 'warning', basic: 'primary',
-  }
-  return m[elder.value.plan_level] || 'primary'
-})
+const planTagType = computed(() => getPlanTagType(elder.value.plan_level))
 
-const planLabel = computed(() => {
-  const m: Record<string, string> = { full: '全护理', standard: '标准', basic: '基础' }
-  return m[elder.value.plan_level] || elder.value.plan_level
-})
+const planLabel = computed(() => getPlanLabel(elder.value.plan_level))
 
-const riskTagType = computed(() => {
-  const m: Record<string, 'danger' | 'warning' | 'success'> = {
-    A: 'danger', B: 'warning', C: 'success',
-  }
-  return m[elder.value.risk_class] || 'success'
-})
+const riskTagType = computed(() => getRiskTagType(elder.value.risk_class))
 
-const statusLabel = computed(() => {
-  const m: Record<string, string> = {
-    home: '正常在住', away: '外出', hospital: '住院', paused: '暂停监护',
-  }
-  return m[elder.value.status] || elder.value.status
-})
+const statusLabel = computed(() => getElderStatusLabel(elder.value.status))
 
-const statusTagType = computed(() => {
-  const m: Record<string, 'success' | 'warning' | 'primary'> = {
-    home: 'success', away: 'warning', hospital: 'primary',
-  }
-  return m[elder.value.status] || 'primary'
-})
+const statusTagType = computed(() => getElderStatusTagType(elder.value.status))
 
-const statusActions = [
-  { name: '正常在住', value: 'home' },
-  { name: '外出', value: 'away' },
-  { name: '住院', value: 'hospital' },
-]
+const statusActions = ELDER_STATUS_ACTIONS
 
 async function onStatusSelect(action: { name: string; value: string }) {
   showStatusModal.value = false

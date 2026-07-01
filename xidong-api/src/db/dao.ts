@@ -93,6 +93,15 @@ export const ElderDao = {
     return (rows[0] as ElderRow) || null;
   },
 
+  async findByIds(ids: string[]): Promise<ElderRow[]> {
+    if (!ids.length) return [];
+    const placeholders = ids.map(() => '?').join(',');
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `SELECT * FROM elder WHERE id IN (${placeholders})`, ids
+    );
+    return rows as ElderRow[];
+  },
+
   async create(data: Partial<ElderRow>): Promise<string> {
     const id = data.id || `E${Date.now().toString(36)}`;
     await pool.execute(
@@ -160,6 +169,15 @@ export const EmergencyContactDao = {
   async findByElderId(elderId: string): Promise<RowDataPacket[]> {
     const [rows] = await pool.execute<RowDataPacket[]>(
       'SELECT * FROM emergency_contact WHERE elder_id = ? ORDER BY priority ASC', [elderId]
+    );
+    return rows;
+  },
+
+  async findByElderIds(elderIds: string[]): Promise<RowDataPacket[]> {
+    if (!elderIds.length) return [];
+    const placeholders = elderIds.map(() => '?').join(',');
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `SELECT * FROM emergency_contact WHERE elder_id IN (${placeholders}) ORDER BY priority ASC`, elderIds
     );
     return rows;
   },
@@ -629,6 +647,20 @@ export const ElderAssignmentDao = {
        WHERE ea.elder_id = ?
        ORDER BY ea.created_at ASC`,
       [elderId]
+    );
+    return rows;
+  },
+
+  async findByElderIds(elderIds: string[]): Promise<RowDataPacket[]> {
+    if (!elderIds.length) return [];
+    const placeholders = elderIds.map(() => '?').join(',');
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `SELECT ea.*, sw.name as worker_name, sw.role as worker_role
+       FROM elder_assignment ea
+       JOIN social_worker sw ON ea.worker_id = sw.id
+       WHERE ea.elder_id IN (${placeholders})
+       ORDER BY ea.created_at ASC`,
+      elderIds
     );
     return rows;
   },

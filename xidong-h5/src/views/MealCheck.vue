@@ -101,6 +101,7 @@ import { ref, computed, onMounted } from 'vue'
 import { showToast } from 'vant'
 import AppTabbar from '@/components/AppTabbar.vue'
 import { mealApi, elderApi, type MealRecord } from '@/api/index'
+import { MEAL_TIME_THRESHOLDS, MEAL_TYPE_LABELS } from '@/utils/constants'
 
 const showElderPicker = ref(false)
 const elderSearch = ref('')
@@ -141,13 +142,13 @@ const filteredElders = computed(() => {
 
 function currentMealType(): string {
   const h = new Date().getHours()
-  if (h < 10) return 'breakfast'
-  if (h < 14) return 'lunch'
+  if (h < MEAL_TIME_THRESHOLDS.BREAKFAST_END) return 'breakfast'
+  if (h < MEAL_TIME_THRESHOLDS.LUNCH_END) return 'lunch'
   return 'dinner'
 }
 
 function mealLabel(type: string): string {
-  return { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' }[type] || type
+  return MEAL_TYPE_LABELS[type] || type
 }
 
 function changeDate(delta: number) {
@@ -168,8 +169,8 @@ async function fetchData() {
   const date = displayDate.value
   try {
     const [statsRes, recordsRes] = await Promise.all([
-      mealApi.stats({ date }) as unknown as Promise<Record<string, number>>,
-      mealApi.list({ date, page_size: 50 }) as unknown as Promise<{ items: MealRecord[] }>,
+      mealApi.stats({ date }),
+      mealApi.list({ date, page_size: 50 }),
     ])
     stats.value = {
       breakfast: statsRes.breakfast || 0,
@@ -180,17 +181,17 @@ async function fetchData() {
     records.value = recordsRes.items || []
   } catch (err) {
     console.error('[MealCheck] fetch failed:', err)
+    showToast('签到数据加载失败')
   }
 }
 
 async function fetchElders() {
   try {
-    const res = (await elderApi.list({ page_size: 100 })) as unknown as {
-      items: Array<{ id: string; name: string; building: string; room: string }>
-    }
+    const res = await elderApi.list({ page_size: 100 }) as { items: Array<{ id: string; name: string; building: string; room: string }> }
     elders.value = res.items || []
   } catch (err) {
     console.error('[MealCheck] fetch elders failed:', err)
+    showToast('老人列表加载失败')
   }
 }
 

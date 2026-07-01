@@ -27,6 +27,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 import { speak } from '@/utils/accessibility'
+import { getLevelTagType, getLevelLabel, getLevelBgClass, getStatusLabel, getStatusTagType } from '@/composables/useAlertMaps'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -45,42 +46,11 @@ interface AlertItem {
 const props = defineProps<{ alert: AlertItem }>()
 defineEmits<{ click: [] }>()
 
-const levelBgClass = computed(() => `level-bg-${props.alert.level.toLowerCase()}`)
-
-const levelTagType = computed(() => {
-  const map: Record<string, 'danger' | 'warning' | 'primary'> = {
-    P0: 'danger',
-    P1: 'warning',
-    P2: 'primary',
-  }
-  return map[props.alert.level] || 'primary'
-})
-
-const levelLabel = computed(() => {
-  const map: Record<string, string> = { P0: '紧急', P1: '注意', P2: '提示' }
-  return map[props.alert.level] || props.alert.level
-})
-
-const statusLabel = computed(() => {
-  const map: Record<string, string> = {
-    pending: '待处理',
-    processing: '处理中',
-    closed: '已关闭',
-    closed_false_positive: '误报关闭',
-    dispatched: '已派单',
-  }
-  return map[props.alert.status] || props.alert.status
-})
-
-const statusTagType = computed(() => {
-  const map: Record<string, 'danger' | 'warning' | 'success' | 'primary'> = {
-    pending: 'danger',
-    processing: 'warning',
-    closed: 'success',
-    dispatched: 'primary',
-  }
-  return map[props.alert.status] || 'primary'
-})
+const levelBgClass = computed(() => getLevelBgClass(props.alert.level))
+const levelTagType = computed(() => getLevelTagType(props.alert.level))
+const levelLabel = computed(() => getLevelLabel(props.alert.level))
+const statusLabel = computed(() => getStatusLabel(props.alert.status))
+const statusTagType = computed(() => getStatusTagType(props.alert.status))
 
 const timeAgo = computed(() => dayjs(props.alert.triggered_at).fromNow())
 

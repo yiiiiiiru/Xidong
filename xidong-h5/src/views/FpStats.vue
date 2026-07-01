@@ -41,7 +41,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { alertApi } from '@/api/index'
+import { showToast } from 'vant'
+import { alertApi, type Alert, type PaginatedResponse } from '@/api/index'
+import { RULE_LABELS, FP_REASON_LABELS } from '@/utils/constants'
 
 const loading = ref(true)
 
@@ -58,39 +60,13 @@ const fpRate = computed(() => {
   return ((overview.value.falsePositive / overview.value.total) * 100).toFixed(1)
 })
 
-const RULE_LABELS: Record<string, string> = {
-  'R-BTN': '一键报警',
-  'R-MIX-01': '夜间离床+厕所',
-  'R-MIX-02': '应睡未睡+未出门',
-  'R-BED-01': '夜间离床',
-  'R-BED-02': '应睡未睡',
-  'R-BED-03': '整夜在床不足',
-  'R-BED-04': '连续在床',
-  'R-BATH-01': '卫生间滞留',
-  'R-DOOR-01': '72h未出门',
-  'R-DOOR-02': '门长开',
-  'R-DEV-01': '设备离线',
-  'R-DEV-02': '电量低',
-}
-
-const REASON_LABELS: Record<string, string> = {
-  bathing: '洗澡',
-  visitor: '有客人',
-  pet: '宠物触发',
-  device_fault: '设备故障',
-  other: '其他',
-}
-
 async function fetchStats() {
   loading.value = true
   try {
     // ponytail: MVP 从告警列表聚合，后续后端出专用接口
-    const res = await alertApi.list({ status: 'closed_false_positive', page: 1, page_size: 200 }) as unknown as {
-      items: Array<{ rule_id: string; false_positive_reason?: string }>
-      total: number
-    }
+    const res = await alertApi.list({ status: 'closed_false_positive', page: 1, page_size: 200 }) as PaginatedResponse<Alert & { false_positive_reason?: string }>
 
-    const allRes = await alertApi.list({ page: 1, page_size: 1 }) as unknown as { total: number }
+    const allRes = await alertApi.list({ page: 1, page_size: 1 })
     overview.value = {
       total: allRes.total,
       falsePositive: res.total,
@@ -110,10 +86,11 @@ async function fetchStats() {
       .sort((a, b) => b.count - a.count)
 
     reasonBreakdown.value = Array.from(reasonMap.entries())
-      .map(([reason, count]) => ({ reason, label: REASON_LABELS[reason] || reason, count }))
+      .map(([reason, count]) => ({ reason, label: FP_REASON_LABELS[reason] || reason, count }))
       .sort((a, b) => b.count - a.count)
   } catch (err) {
     console.error('[FpStats] fetch failed:', err)
+    showToast('误报统计加载失败')
   } finally {
     loading.value = false
   }

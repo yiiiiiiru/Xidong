@@ -29,6 +29,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getLevelTagType, getLevelLabel, getLevelBgClass } from '@/composables/useAlertMaps'
 
 const router = useRouter()
 const refreshing = ref(false)
@@ -47,15 +48,9 @@ const alerts = ref([
   },
 ])
 
-function levelType(l: string): 'danger' | 'warning' | 'primary' {
-  return l === 'P0' ? 'danger' : l === 'P1' ? 'warning' : 'primary'
-}
-function levelText(l: string) {
-  return l === 'P0' ? '紧急' : l === 'P1' ? '注意' : '提示'
-}
-function levelBg(l: string) {
-  return `level-bg-${l.toLowerCase()}`
-}
+function levelType(l: string) { return getLevelTagType(l) }
+function levelText(l: string) { return getLevelLabel(l) }
+function levelBg(l: string) { return getLevelBgClass(l) }
 function onRefresh() {
   setTimeout(() => { refreshing.value = false }, 800)
 }

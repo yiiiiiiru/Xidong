@@ -144,25 +144,28 @@ export async function listMeals(query: {
     pageSize,
   });
 
-  // 补充 elder_name（join 或 batch 查）
-  const records: MealRecord[] = [];
-  for (const row of rows) {
-    let elderName = '';
-    const elder = await ElderDao.findById(row.elder_id);
-    if (elder) elderName = elder.name;
-    records.push({
-      id: row.id,
-      elder_id: row.elder_id,
-      elder_name: elderName,
-      meal_date: String(row.meal_date).slice(0, 10),
-      meal_type: row.meal_type as MealType,
-      check_method: row.check_method as CheckMethod,
-      amount: Number(row.amount) || 0,
-      operator_id: row.operator_id || '',
-      note: row.note || '',
-      checked_at: String(row.checked_at),
-    });
+  // 批量查询关联老人名称（修复 N+1）
+  const elderIds = [...new Set(rows.map(r => r.elder_id))];
+  const elderMap = new Map<string, string>();
+  if (elderIds.length > 0) {
+    const elders = await ElderDao.findByIds(elderIds);
+    for (const e of elders) {
+      elderMap.set(e.id, e.name);
+    }
   }
+
+  const records: MealRecord[] = rows.map(row => ({
+    id: row.id,
+    elder_id: row.elder_id,
+    elder_name: elderMap.get(row.elder_id) || '',
+    meal_date: String(row.meal_date).slice(0, 10),
+    meal_type: row.meal_type as MealType,
+    check_method: row.check_method as CheckMethod,
+    amount: Number(row.amount) || 0,
+    operator_id: row.operator_id || '',
+    note: row.note || '',
+    checked_at: String(row.checked_at),
+  }));
 
   return { status: 200, body: { items: records, total, page, pageSize } };
 }

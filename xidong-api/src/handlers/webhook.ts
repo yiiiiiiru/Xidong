@@ -209,8 +209,19 @@ export async function handleDingtalkWebhook(
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   const payload = body as DingtalkCardCallback;
 
-  // ponytail: skip signature verification in MVP
-  // TODO: 生产环境验证 X-Dingtalk-Sign
+  // 钉钉回调签名验证
+  const DINGTALK_APP_SECRET = process.env.DINGTALK_APP_SECRET || '';
+  if (DINGTALK_APP_SECRET) {
+    const timestamp = _headers['timestamp'] || _headers['Timestamp'] || '';
+    const sign = _headers['sign'] || _headers['Sign'] || '';
+    if (!verifyDingtalkSign(timestamp, sign, DINGTALK_APP_SECRET)) {
+      console.warn('[DingTalk] signature verification failed');
+      return { status: 401, body: { error: 'invalid dingtalk signature' } };
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    console.error('[DingTalk] DINGTALK_APP_SECRET not configured in production!');
+    return { status: 500, body: { error: 'server misconfiguration' } };
+  }
 
   if (!payload?.outTrackId || !payload?.content?.cardPrivateData?.actionType) {
     return { status: 400, body: { error: 'invalid dingtalk callback payload' } };
@@ -313,4 +324,21 @@ function verifyTuyaSign(sign: string | undefined, timestamp: string, bodyStr: st
   const strToSign = `${TUYA_ACCESS_SECRET}${timestamp}${bodyStr}`;
   const expected = createHmac('sha256', TUYA_ACCESS_SECRET).update(strToSign).digest('hex').toUpperCase();
   return sign.toUpperCase() === expected;
+}
+
+// ─── 钉钉回调签名验证 ───
+
+/**
+ * 钉钉互动卡片回调签名验证
+ * 算法：HmacSHA256(timestamp + "\n" + appSecret, appSecret)
+ * 参考：https://open.dingtalk.com/document/orgapp/callback-overview
+ */
+function verifyDingtalkSign(timestamp: string, sign: string, appSecret: string): boolean {
+  if (!timestamp || !sign || !appSecret) return false;
+  // 检查时间戳是否过期（1小时内有效）
+  const ts = Number(timestamp);
+  if (Math.abs(Date.now() - ts) > 3600_000) return false;
+  const strToSign = `${timestamp}\n${appSecret}`;
+  const expected = createHmac('sha256', appSecret).update(strToSign).digest('base64');
+  return sign === expected;
 }

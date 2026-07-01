@@ -99,6 +99,8 @@
 import { ref, onMounted } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
 import { elderApi, elderApiExt, workerApi, type Elder, type Worker } from '@/api/index'
+import { RISK_ACTIONS, PLAN_ACTIONS, RISK_LABELS, RISK_COLORS, ROLE_OPTIONS, WORKER_ROLE_ACTIONS } from '@/utils/constants'
+import { getPlanLabel, getWorkerRoleLabel } from '@/composables/useAlertMaps'
 
 const activeTab = ref(0)
 
@@ -124,35 +126,24 @@ const elderForm = ref({
   property_phone: '',
 })
 
-const riskActions = [
-  { name: 'A — 高风险（独居/高龄）', value: 'A' },
-  { name: 'B — 中风险', value: 'B' },
-  { name: 'C — 低风险', value: 'C' },
-]
-const planActions = [
-  { name: '全覆盖（full）', value: 'full' },
-  { name: '标准（standard）', value: 'standard' },
-  { name: '基础（basic）', value: 'basic' },
-]
+const riskActions = RISK_ACTIONS
+const planActions = PLAN_ACTIONS
 
 function riskLabel(r: string) {
-  const m: Record<string, string> = { A: '高风险', B: '中风险', C: '低风险' }
-  return m[r] || r
+  return RISK_LABELS[r] || r
 }
 function riskColor(r: string) {
-  const m: Record<string, string> = { A: 'danger', B: 'warning', C: 'success' }
-  return m[r] || 'default'
+  return RISK_COLORS[r] || 'default'
 }
 function planLabel(p: string) {
-  const m: Record<string, string> = { full: '全覆盖', standard: '标准', basic: '基础' }
-  return m[p] || p
+  return getPlanLabel(p)
 }
 
 async function fetchElders() {
   try {
     const params: Record<string, unknown> = {}
     if (elderSearch.value) params.name = elderSearch.value
-    const res = await elderApi.list(params) as unknown as { items: Elder[] }
+    const res = await elderApi.list(params)
     elders.value = res.items || []
   } catch (err) {
     console.error('[Admin] fetch elders:', err)
@@ -237,32 +228,18 @@ const workerForm = ref({
   on_duty: false,
 })
 
-const roleOptions = [
-  { text: '全部角色', value: '' },
-  { text: '社工', value: 'social_worker' },
-  { text: '备班', value: 'backup' },
-  { text: '楼长', value: 'building_manager' },
-  { text: '主任', value: 'director' },
-  { text: '物业', value: 'property' },
-]
-const workerRoleActions = [
-  { name: '社工', value: 'social_worker' },
-  { name: '备班', value: 'backup' },
-  { name: '楼长', value: 'building_manager' },
-  { name: '主任', value: 'director' },
-  { name: '物业', value: 'property' },
-]
+const roleOptions = ROLE_OPTIONS
+const workerRoleActions = WORKER_ROLE_ACTIONS
 
 function roleLabel(role: string) {
-  const m: Record<string, string> = { social_worker: '社工', backup: '备班', building_manager: '楼长', director: '主任', property: '物业' }
-  return m[role] || role
+  return getWorkerRoleLabel(role)
 }
 
 async function fetchWorkers() {
   try {
     const params: Record<string, unknown> = {}
     if (filterRole.value) params.role = filterRole.value
-    const res = await workerApi.list(params) as unknown as { items: Worker[] }
+    const res = await workerApi.list(params)
     workers.value = res.items || []
   } catch (err) {
     console.error('[Admin] fetch workers:', err)

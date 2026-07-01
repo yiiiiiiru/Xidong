@@ -51,9 +51,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { showToast } from 'vant'
 import AppTabbar from '@/components/AppTabbar.vue'
 import { elderApi, assignmentApi, type Elder } from '@/api/index'
 import { useUserStore } from '@/stores/user'
+import { BUILDING_OPTIONS, PLAN_LEVEL_OPTIONS } from '@/utils/constants'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -65,19 +67,8 @@ const filterBuilding = ref('')
 const filterLevel = ref('')
 const elders = ref<Elder[]>([])
 
-const buildingOptions = [
-  { text: '全部楼幢', value: '' },
-  { text: '3幢', value: '3' },
-  { text: '5幢', value: '5' },
-  { text: '7幢', value: '7' },
-]
-
-const levelOptions = [
-  { text: '全部等级', value: '' },
-  { text: '全护理', value: 'full' },
-  { text: '标准护理', value: 'standard' },
-  { text: '基础护理', value: 'basic' },
-]
+const buildingOptions = BUILDING_OPTIONS
+const levelOptions = PLAN_LEVEL_OPTIONS
 
 async function fetchElders() {
   try {
@@ -86,11 +77,11 @@ async function fetchElders() {
       const params: Record<string, unknown> = {}
       if (filterBuilding.value) params.building = filterBuilding.value
       if (filterLevel.value) params.plan_level = filterLevel.value
-      const res = await elderApi.list(params) as unknown as { items: Elder[] }
+      const res = await elderApi.list(params)
       elders.value = res.items || []
     } else {
       // 其他角色只看自己负责的
-      const res = await assignmentApi.myElders() as unknown as { items: Array<Elder & { elder_name: string; elder_id: string }> }
+      const res = await assignmentApi.myElders()
       elders.value = (res.items || []).map(item => ({
         id: item.elder_id || item.id,
         name: item.elder_name || item.name,
@@ -106,6 +97,7 @@ async function fetchElders() {
     }
   } catch (err) {
     console.error('[ElderList] fetch failed:', err)
+    showToast('老人档案加载失败')
   }
 }
 

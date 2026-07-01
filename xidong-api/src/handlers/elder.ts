@@ -92,18 +92,35 @@ export async function listElders(query: {
     pageSize: query.pageSize,
   });
 
-  const elders: ElderRecord[] = [];
-  for (const row of rows) {
-    const contacts = await EmergencyContactDao.findByElderId(row.id);
-    const first = contacts[0] as { name: string; phone: string } | undefined;
-    const elder = rowToElderRecord(row as unknown as Record<string, unknown>, first);
-    // 附带负责人
-    const assigns = await ElderAssignmentDao.findByElder(row.id);
-    (elder as Record<string, unknown>).assignments = assigns.map(a => ({
-      worker_id: a.worker_id, worker_name: a.worker_name, role: a.role,
-    }));
-    elders.push(elder);
+  // 批量查询紧急联系人 + 负责人（修复 N+1）
+  const elderIds = rows.map(r => r.id);
+  const [allContacts, allAssignments] = await Promise.all([
+    EmergencyContactDao.findByElderIds(elderIds),
+    ElderAssignmentDao.findByElderIds(elderIds),
+  ]);
+
+  // 按 elder_id 分组
+  const contactMap = new Map<string, { name: string; phone: string }>();
+  for (const c of allContacts) {
+    // 只取每个老人的第一个紧急联系人
+    if (!contactMap.has(c.elder_id)) {
+      contactMap.set(c.elder_id, { name: c.name, phone: c.phone });
+    }
   }
+
+  const assignmentMap = new Map<string, Array<{ worker_id: string; worker_name: string; role: string }>>();
+  for (const a of allAssignments) {
+    const list = assignmentMap.get(a.elder_id) || [];
+    list.push({ worker_id: a.worker_id, worker_name: a.worker_name, role: a.role });
+    assignmentMap.set(a.elder_id, list);
+  }
+
+  const elders: ElderRecord[] = rows.map(row => {
+    const contact = contactMap.get(row.id);
+    const elder = rowToElderRecord(row as unknown as Record<string, unknown>, contact);
+    (elder as Record<string, unknown>).assignments = assignmentMap.get(row.id) || [];
+    return elder;
+  });
 
   return { status: 200, body: { items: elders, total, page: query.page || 1, pageSize: query.pageSize || 20 } };
 }

@@ -16,6 +16,10 @@ const DINGTALK_WEBHOOK = process.env.DINGTALK_WEBHOOK || '';
 const DINGTALK_SECRET = process.env.DINGTALK_SECRET || '';
 const NOTIFY_ENABLED = process.env.NOTIFY_ENABLED !== 'false';
 
+// 勿扰时段配置（环境变量覆盖，格式: "23-6" 表示 23:00-06:00）
+const QUIET_HOURS_RAW = process.env.QUIET_HOURS || '23-6';
+const [QUIET_START, QUIET_END] = QUIET_HOURS_RAW.split('-').map(Number);
+
 // ─── 告警消息结构 ───
 
 export interface AlertNotifyPayload {
@@ -37,11 +41,14 @@ export async function notifyAlert(payload: AlertNotifyPayload): Promise<boolean>
     return false;
   }
 
-  // ponytail: P1 夜间勿扰 23:00-06:00，仅 P0 穿透；升级路径：Redis 配置化勿扰时段
+  // P1 勿扰时段检查（仅 P0 穿透）
   if (payload.level === 'P1') {
     const hour = new Date().getHours();
-    if (hour >= 23 || hour < 6) {
-      console.log(`[Notify] quiet hours (23-06), suppress P1: ${payload.ruleId}`);
+    const isQuietHour = QUIET_START > QUIET_END
+      ? (hour >= QUIET_START || hour < QUIET_END)   // 跨午夜，如 23-6
+      : (hour >= QUIET_START && hour < QUIET_END);  // 不跨午夜
+    if (isQuietHour) {
+      console.log(`[Notify] quiet hours (${QUIET_START}-${QUIET_END}), suppress P1: ${payload.ruleId}`);
       return false;
     }
   }

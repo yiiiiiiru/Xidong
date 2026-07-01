@@ -74,6 +74,22 @@ api.interceptors.response.use(
   }
 )
 
+// ─── 通用响应类型 ───
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface ApiResult<T = Record<string, unknown>> {
+  success?: boolean
+  error?: string
+  [key: string]: unknown
+  data?: T
+}
+
 // ─── 接口定义 ─── (W1·D2-D5 逐步完善)
 
 export interface Alert {
@@ -86,6 +102,12 @@ export interface Alert {
   status: string
   trigger_desc: string
   triggered_at: string
+  closed_at?: string
+  handler_id?: string
+  handler_name?: string
+  false_positive_reason?: string
+  note?: string
+  timeline?: Array<{ event: string; ts: string; operator?: string; note?: string }>
 }
 
 export interface Elder {
@@ -96,37 +118,49 @@ export interface Elder {
   building: string
   unit: string
   room: string
+  phone?: string
   risk_class: 'A' | 'B' | 'C'
   plan_level: 'full' | 'standard' | 'basic'
+  status?: string
+  is_homebound?: boolean
+  emergency_contact?: string
+  emergency_phone?: string
+  property_phone?: string
+  updated_by?: string
   assignments?: Array<{ worker_id: string; worker_name: string; role: string }>
+  devices?: Array<{ devId: string; deviceType: string; location: string }>
+  emergency_contacts?: Array<{ name: string; phone: string; relation: string }>
 }
 
 // 告警 API
 export const alertApi = {
-  list: (params?: Record<string, unknown>) => api.get('/alerts', { params }),
-  detail: (id: string) => api.get(`/alerts/${id}`),
+  list: (params?: Record<string, unknown>) => api.get('/alerts', { params }) as Promise<PaginatedResponse<Alert>>,
+  detail: (id: string) => api.get(`/alerts/${id}`) as Promise<Alert>,
   handle: (id: string, data: { action: string; note?: string; false_positive_reason?: string }) =>
-    api.put(`/alerts/${id}/handle`, data),
+    api.put(`/alerts/${id}/handle`, data) as Promise<ApiResult>,
 }
 
 // 档案 API
 export const elderApi = {
-  list: (params?: Record<string, unknown>) => api.get('/elders', { params }),
-  detail: (id: string) => api.get(`/elders/${id}`),
+  list: (params?: Record<string, unknown>) => api.get('/elders', { params }) as Promise<PaginatedResponse<Elder>>,
+  detail: (id: string) => api.get(`/elders/${id}`) as Promise<Elder>,
   importExcel: (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
     return api.post('/elders/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    }) as Promise<ApiResult>
   },
   setStatus: (id: string, data: Record<string, unknown>) =>
-    api.put(`/elders/${id}/status`, data),
+    api.put(`/elders/${id}/status`, data) as Promise<ApiResult>,
 }
 
 // 统计 API
 export const statsApi = {
-  me: () => api.get('/me/stats'),
+  me: () => api.get('/me/stats') as Promise<{
+    pending_count: number; processing_count: number;
+    closed_today: number; total_elders: number;
+  }>,
 }
 
 // 食堂签到/消费 API
@@ -143,20 +177,22 @@ export interface MealRecord {
 
 export const mealApi = {
   checkin: (data: { elder_id: string; meal_type: string; amount?: number; note?: string }) =>
-    api.post('/meals/checkin', data),
+    api.post('/meals/checkin', data) as Promise<ApiResult>,
   import: (records: Array<{ elder_id: string; meal_type: string; meal_date?: string; amount?: number }>) =>
-    api.post('/meals/import', { records }),
-  list: (params?: Record<string, unknown>) => api.get('/meals', { params }),
-  stats: (params?: { date?: string; building?: string }) => api.get('/meals/stats', { params }),
-  update: (id: string, data: Record<string, unknown>) => api.put(`/meals/${id}`, data),
-  cancel: (id: string) => api.delete(`/meals/${id}`),
+    api.post('/meals/import', { records }) as Promise<ApiResult>,
+  list: (params?: Record<string, unknown>) => api.get('/meals', { params }) as Promise<PaginatedResponse<MealRecord>>,
+  stats: (params?: { date?: string; building?: string }) => api.get('/meals/stats', { params }) as Promise<{
+    breakfast: number; lunch: number; dinner: number; coverage_rate: number;
+  }>,
+  update: (id: string, data: Record<string, unknown>) => api.put(`/meals/${id}`, data) as Promise<ApiResult>,
+  cancel: (id: string) => api.delete(`/meals/${id}`) as Promise<ApiResult>,
 }
 
 // 老人档案补充
 export const elderApiExt = {
-  create: (data: Record<string, unknown>) => api.post('/elders', data),
-  update: (id: string, data: Record<string, unknown>) => api.put(`/elders/${id}/info`, data),
-  delete: (id: string) => api.delete(`/elders/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/elders', data) as Promise<ApiResult>,
+  update: (id: string, data: Record<string, unknown>) => api.put(`/elders/${id}/info`, data) as Promise<ApiResult>,
+  delete: (id: string) => api.delete(`/elders/${id}`) as Promise<ApiResult>,
 }
 
 // 工作人员管理 API
@@ -171,11 +207,11 @@ export interface Worker {
 }
 
 export const workerApi = {
-  list: (params?: Record<string, unknown>) => api.get('/workers', { params }),
-  detail: (id: string) => api.get(`/workers/${id}`),
-  create: (data: Partial<Worker>) => api.post('/workers', data),
-  update: (id: string, data: Partial<Worker>) => api.put(`/workers/${id}`, data),
-  delete: (id: string) => api.delete(`/workers/${id}`),
+  list: (params?: Record<string, unknown>) => api.get('/workers', { params }) as Promise<PaginatedResponse<Worker>>,
+  detail: (id: string) => api.get(`/workers/${id}`) as Promise<Worker>,
+  create: (data: Partial<Worker>) => api.post('/workers', data) as Promise<ApiResult>,
+  update: (id: string, data: Partial<Worker>) => api.put(`/workers/${id}`, data) as Promise<ApiResult>,
+  delete: (id: string) => api.delete(`/workers/${id}`) as Promise<ApiResult>,
 }
 
 // 老人负责人分配 API
@@ -186,12 +222,12 @@ export interface Assignment {
 }
 
 export const assignmentApi = {
-  list: (elderId: string) => api.get(`/elders/${elderId}/assignments`),
+  list: (elderId: string) => api.get(`/elders/${elderId}/assignments`) as Promise<PaginatedResponse<Assignment>>,
   assign: (elderId: string, data: { worker_id: string; role?: string }) =>
-    api.post(`/elders/${elderId}/assignments`, data),
+    api.post(`/elders/${elderId}/assignments`, data) as Promise<ApiResult>,
   remove: (elderId: string, workerId: string) =>
-    api.delete(`/elders/${elderId}/assignments/${workerId}`),
-  myElders: () => api.get('/my-elders'),
+    api.delete(`/elders/${elderId}/assignments/${workerId}`) as Promise<ApiResult>,
+  myElders: () => api.get('/my-elders') as Promise<PaginatedResponse<Elder & { elder_name?: string; elder_id?: string }>>,
 }
 
 export default api

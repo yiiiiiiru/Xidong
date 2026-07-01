@@ -329,25 +329,66 @@ function getHeaders(req: IncomingMessage): Record<string, string> {
   return h;
 }
 
-function json(res: ServerResponse, status: number, data: unknown) {
-  res.writeHead(status, {
+// ─── CORS 白名单配置 ───
+const CORS_WHITELIST = (process.env.CORS_ORIGINS || '').split(',').filter(Boolean);
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function getCorsOrigin(req: IncomingMessage): string {
+  const origin = req.headers.origin || '';
+  // 开发环境允许所有
+  if (!IS_PROD) return origin || '*';
+  // 生产环境仅允许白名单
+  if (CORS_WHITELIST.includes(origin)) return origin;
+  return '';
+}
+
+// ─── 内部 API Token 防护 ───
+const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN || '';
+
+function verifyInternalToken(req: IncomingMessage): boolean {
+  // 开发环境无 token 时允许访问
+  if (!IS_PROD && !INTERNAL_TOKEN) return true;
+  const authHeader = req.headers['x-internal-token'] || req.headers['authorization'];
+  if (!authHeader) return false;
+  const token = typeof authHeader === 'string' ? authHeader.replace('Bearer ', '') : '';
+  return token === INTERNAL_TOKEN;
+}
+
+function json(res: ServerResponse, status: number, data: unknown, req?: IncomingMessage) {
+  const corsOrigin = req ? getCorsOrigin(req) : '*';
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-User-Id,X-Role,X-Building,X-User-Name',
-  });
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-User-Id,X-Role,X-Building,X-User-Name,X-Internal-Token',
+  };
+  if (corsOrigin) {
+    headers['Access-Control-Allow-Origin'] = corsOrigin;
+  }
+  res.writeHead(status, headers);
   res.end(JSON.stringify(data));
 }
 
 const server = createServer(async (req, res) => {
   // CORS preflight
   if (req.method === 'OPTIONS') {
-    json(res, 204, null);
+    json(res, 204, null, req);
     return;
   }
 
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
   const pathname = url.pathname;
+
+  // 内部 API Token 防护
+  if (pathname.startsWith('/api/internal/')) {
+    if (IS_PROD) {
+      json(res, 403, { error: 'FORBIDDEN', message: 'Internal API disabled in production' }, req);
+      return;
+    }
+    if (INTERNAL_TOKEN && !verifyInternalToken(req)) {
+      json(res, 401, { error: 'UNAUTHORIZED', message: 'Invalid internal API token' }, req);
+      return;
+    }
+  }
 
   // 解析用户身份
   const headers: Record<string, string | undefined> = {};
@@ -364,7 +405,7 @@ const server = createServer(async (req, res) => {
     // RBAC 检查
     if (route.roles && route.roles.length > 0) {
       if (!route.roles.includes(user.role)) {
-        json(res, 403, { error: 'FORBIDDEN', message: `角色 ${user.role} 无权访问此接口` });
+        json(res, 403, { error: 'FORBIDDEN', message: `角色 ${user.role} 无权访问此接口` }, req);
         return;
       }
     }
@@ -373,12 +414,12 @@ const server = createServer(async (req, res) => {
       await route.handler(req, res, match.groups || {}, user);
     } catch (err) {
       console.error(`[ERROR] ${req.method} ${pathname}:`, err);
-      json(res, 500, { error: 'INTERNAL', message: (err as Error).message });
+      json(res, 500, { error: 'INTERNAL', message: (err as Error).message }, req);
     }
     return;
   }
 
-  json(res, 404, { error: 'NOT_FOUND', path: pathname });
+  json(res, 404, { error: 'NOT_FOUND', path: pathname }, req);
 });
 
 server.listen(PORT, () => {
