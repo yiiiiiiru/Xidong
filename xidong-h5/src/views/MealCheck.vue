@@ -102,9 +102,11 @@ import { showToast } from 'vant'
 import AppTabbar from '@/components/AppTabbar.vue'
 import { mealApi, elderApi, type MealRecord } from '@/api/index'
 import { MEAL_TIME_THRESHOLDS, MEAL_TYPE_LABELS } from '@/utils/constants'
+import { useDebouncedRef } from '@/composables/useDebounce'
 
 const showElderPicker = ref(false)
 const elderSearch = ref('')
+const debouncedElderSearch = useDebouncedRef(elderSearch, 300)
 const submitting = ref(false)
 const selectedDate = ref(new Date())
 
@@ -136,8 +138,8 @@ const displayDate = computed(() => {
 const isToday = computed(() => displayDate.value === new Date().toISOString().slice(0, 10))
 
 const filteredElders = computed(() => {
-  if (!elderSearch.value) return elders.value
-  return elders.value.filter((e) => e.name.includes(elderSearch.value))
+  if (!debouncedElderSearch.value) return elders.value
+  return elders.value.filter((e) => e.name.includes(debouncedElderSearch.value))
 })
 
 function currentMealType(): string {

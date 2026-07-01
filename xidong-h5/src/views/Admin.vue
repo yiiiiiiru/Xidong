@@ -5,7 +5,7 @@
     <van-tabs v-model:active="activeTab" sticky>
       <!-- ===== Tab 1: 老人管理 ===== -->
       <van-tab title="老人管理">
-        <van-search v-model="elderSearch" placeholder="搜索姓名" @search="fetchElders" />
+        <van-search v-model="elderSearch" placeholder="搜索姓名" />
         <van-pull-refresh v-model="elderRefreshing" @refresh="fetchElders().then(() => elderRefreshing = false)">
           <div class="list-content">
             <van-cell-group inset>
@@ -96,17 +96,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
 import { elderApi, elderApiExt, workerApi, type Elder, type Worker } from '@/api/index'
 import { RISK_ACTIONS, PLAN_ACTIONS, RISK_LABELS, RISK_COLORS, ROLE_OPTIONS, WORKER_ROLE_ACTIONS } from '@/utils/constants'
 import { getPlanLabel, getWorkerRoleLabel } from '@/composables/useAlertMaps'
+import { useDebouncedRef } from '@/composables/useDebounce'
 
 const activeTab = ref(0)
 
 // ─── 老人管理 ───
 const elderSearch = ref('')
+const debouncedElderSearch = useDebouncedRef(elderSearch, 300)
 const elderRefreshing = ref(false)
+
+// 搜索防抖触发
+watch(debouncedElderSearch, () => fetchElders())
 const elders = ref<Elder[]>([])
 const elderFormShow = ref(false)
 const elderIsEdit = ref(false)
@@ -142,7 +147,7 @@ function planLabel(p: string) {
 async function fetchElders() {
   try {
     const params: Record<string, unknown> = {}
-    if (elderSearch.value) params.name = elderSearch.value
+    if (debouncedElderSearch.value) params.name = debouncedElderSearch.value
     const res = await elderApi.list(params)
     elders.value = res.items || []
   } catch (err) {

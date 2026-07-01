@@ -142,13 +142,16 @@ async function onAction(action: { value: string }) {
     showFpDialog.value = true
     return
   }
+  const prevStatus = alert.value.status
   try {
-    await alertApi.handle(alertId, { action: action.value })
-    // 立即更新本地状态，让用户看到变化
+    // 乐观更新
     alert.value.status = ACTION_TO_STATUS[action.value] || alert.value.status
+    await alertApi.handle(alertId, { action: action.value })
     showToast('操作成功')
     setTimeout(() => router.replace('/workbench'), 1200)
   } catch (err) {
+    // 回滚
+    alert.value.status = prevStatus
     showToast('操作失败')
   }
 }
@@ -242,6 +245,7 @@ onMounted(() => fetchDetail())
   left: 0;
   right: 0;
   padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   background: #fff;
   box-shadow: 0 -1px 4px rgba(0,0,0,0.06);
 }

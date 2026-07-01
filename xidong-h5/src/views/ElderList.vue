@@ -61,12 +61,14 @@ import AppTabbar from '@/components/AppTabbar.vue'
 import { elderApi, assignmentApi, type Elder } from '@/api/index'
 import { useUserStore } from '@/stores/user'
 import { BUILDING_OPTIONS, PLAN_LEVEL_OPTIONS } from '@/utils/constants'
+import { useDebouncedRef } from '@/composables/useDebounce'
 
 const router = useRouter()
 const userStore = useUserStore()
 const isDirector = computed(() => userStore.role === 'director')
 
 const keyword = ref('')
+const debouncedKeyword = useDebouncedRef(keyword, 300)
 const refreshing = ref(false)
 const loading = ref(true)
 const filterBuilding = ref('')
@@ -112,7 +114,7 @@ async function fetchElders() {
 
 const filteredList = computed(() => {
   return elders.value.filter((e) => {
-    if (keyword.value && !e.name.includes(keyword.value) && !e.building?.includes(keyword.value)) return false
+    if (debouncedKeyword.value && !e.name.includes(debouncedKeyword.value) && !e.building?.includes(debouncedKeyword.value)) return false
     if (!isDirector.value) return true
     if (filterBuilding.value && e.building !== filterBuilding.value) return false
     if (filterLevel.value && e.plan_level !== filterLevel.value) return false

@@ -3,7 +3,13 @@
     <van-nav-bar title="个人中心" fixed placeholder />
 
     <div class="user-card">
-      <van-image round width="56px" height="56px" src="https://img.yzcdn.cn/vant/cat.jpeg" />
+      <van-image round width="56px" height="56px">
+        <template #default>
+          <div class="avatar-placeholder">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="#fff"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+        </template>
+      </van-image>
       <div class="user-info">
         <span class="user-name">{{ userInfo.name }}</span>
         <van-tag type="primary">{{ roleLabel }}</van-tag>
@@ -26,7 +32,7 @@
       <van-cell title="误报统计" is-link to="/me/fp-stats" icon="chart-trending-o" />
       <van-cell title="适老模式" label="大字号 + 语音播报" icon="eye-o">
         <template #right-icon>
-          <van-switch v-model="elderMode" size="20px" @change="onElderModeChange" />
+          <van-switch :model-value="elderMode" size="20px" @update:model-value="onElderModeChange" />
         </template>
       </van-cell>
     </van-cell-group>
@@ -150,7 +156,7 @@ import { useRouter } from 'vue-router'
 import AppTabbar from '@/components/AppTabbar.vue'
 import { statsApi } from '@/api/index'
 import { useUserStore } from '@/stores/user'
-import { isElderMode, toggleElderMode } from '@/utils/accessibility'
+import { useAppStore } from '@/stores/app'
 import { getWorkerRoleLabel } from '@/composables/useAlertMaps'
 
 const router = useRouter()
@@ -186,11 +192,12 @@ async function fetchStats() {
   }
 }
 
-// 适老模式
-const elderMode = ref(isElderMode())
+// 适老模式—统一从 Pinia store 取状态
+const appStore = useAppStore()
+const elderMode = computed(() => appStore.elderMode)
 function onElderModeChange() {
-  toggleElderMode()
-  showToast(elderMode.value ? '已开启适老模式，字号已放大' : '已关闭适老模式')
+  appStore.toggleElderMode()
+  showToast(appStore.elderMode ? '已开启适老模式，字号已放大' : '已关闭适老模式')
 }
 
 // MVP 降级开关
@@ -275,6 +282,15 @@ onMounted(() => fetchStats())
 .user-name {
   font-size: 18px;
   font-weight: 600;
+}
+.avatar-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .logout-section {
   padding: 24px 16px;

@@ -109,7 +109,7 @@
 
         <van-form ref="formRef">
           <van-cell-group inset>
-            <van-field v-model="editForm.name" label="姓名" placeholder="请输入姓名" :rules="[{ required: true }]" />
+            <van-field v-model="editForm.name" label="姓名" placeholder="请输入姓名" :rules="[{ required: true, message: '请输入姓名' }]" />
             <van-field label="性别" readonly>
               <template #input>
                 <van-radio-group v-model="editForm.gender" direction="horizontal">
@@ -118,9 +118,9 @@
                 </van-radio-group>
               </template>
             </van-field>
-            <van-field v-model="editForm.age" label="年龄" type="digit" placeholder="请输入年龄" />
-            <van-field v-model="editForm.phone" label="电话" type="tel" placeholder="请输入手机号" />
-            <van-field v-model="editForm.building" label="楼栋" placeholder="如: 3" />
+            <van-field v-model="editForm.age" label="年龄" type="digit" placeholder="请输入年龄" :rules="[{ required: true, message: '请输入年龄' }, { validator: (v: string) => Number(v) >= 50 && Number(v) <= 120, message: '年龄应在50-120之间' }]" />
+            <van-field v-model="editForm.phone" label="电话" type="tel" placeholder="请输入手机号" :rules="[{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }]" />
+            <van-field v-model="editForm.building" label="楼栋" placeholder="如: 3" :rules="[{ required: true, message: '请输入楼栋' }]" />
             <van-field v-model="editForm.room" label="房间" placeholder="如: 301" />
           </van-cell-group>
 
@@ -303,7 +303,16 @@ function openEdit() {
   showEdit.value = true
 }
 
+const formRef = ref<any>(null)
+
 async function submitEdit() {
+  // 触发表单验证
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return // 验证未通过
+  }
+
   const data: Record<string, unknown> = {}
   if (editForm.value.name && editForm.value.name !== elder.value.name) data.name = editForm.value.name
   if (editForm.value.gender !== elder.value.gender) data.gender = editForm.value.gender

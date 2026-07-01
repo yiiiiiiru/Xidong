@@ -16,7 +16,7 @@
           </div>
           <div class="ba-body">
             <span class="ba-elder">{{ alert.elder_name }}</span>
-            <span class="ba-room">{{ alert.building }}幢{{ alert.room }}</span>
+            <span class="ba-room">{{ alert.building }}幢</span>
           </div>
           <p class="ba-desc">{{ alert.trigger_desc }}</p>
         </div>
@@ -27,33 +27,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { showToast } from 'vant'
 import { getLevelTagType, getLevelLabel, getLevelBgClass } from '@/composables/useAlertMaps'
+import { alertApi, type Alert } from '@/api/index'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const refreshing = ref(false)
+const loading = ref(true)
 
-// Mock — 楼长视角数据（脱敏后无手机号、无慢性病）
-const alerts = ref([
-  {
-    id: '2001', elder_name: '张阿婆', building: '3', room: '301',
-    rule_id: 'R-BTN', level: 'P0', trigger_desc: '床头一键报警长按触发',
-    triggered_at: '14:30',
-  },
-  {
-    id: '2002', elder_name: '王奶奶', building: '3', room: '303',
-    rule_id: 'R-MIX-01', level: 'P1', trigger_desc: '12h 内无开门+无人体活动',
-    triggered_at: '06:00',
-  },
-])
+const alerts = ref<Alert[]>([])
+
+async function fetchAlerts() {
+  loading.value = true
+  try {
+    const res = await alertApi.list({ building: userStore.building, status: 'pending' })
+    alerts.value = res.items || []
+  } catch (err) {
+    console.error('[BuildingAlerts] fetch failed:', err)
+    showToast('告警加载失败')
+  } finally {
+    loading.value = false
+  }
+}
 
 function levelType(l: string) { return getLevelTagType(l) }
 function levelText(l: string) { return getLevelLabel(l) }
 function levelBg(l: string) { return getLevelBgClass(l) }
-function onRefresh() {
-  setTimeout(() => { refreshing.value = false }, 800)
+async function onRefresh() {
+  await fetchAlerts()
+  refreshing.value = false
 }
+
+onMounted(() => fetchAlerts())
 </script>
 
 <style scoped>

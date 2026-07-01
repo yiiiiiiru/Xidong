@@ -17,6 +17,16 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/vant')) return 'vant'
+          if (id.includes('node_modules/axios') || id.includes('node_modules/dayjs') || id.includes('node_modules/pinia') || id.includes('node_modules/vue-router')) return 'vendor'
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

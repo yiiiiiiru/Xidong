@@ -9,16 +9,24 @@
       background="#ee0a24"
       class="offline-bar"
     />
-    <router-view :key="$route.fullPath" />
+    <ErrorBoundary>
+      <router-view v-slot="{ Component }">
+        <transition name="page-fade" mode="out-in">
+          <component :is="Component" :key="$route.fullPath" />
+        </transition>
+      </router-view>
+    </ErrorBoundary>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { applyElderMode } from '@/utils/accessibility'
+import { useAppStore } from '@/stores/app'
+import ErrorBoundary from '@/components/ErrorBoundary.vue'
 
 // 启动时恢复适老模式状态
-applyElderMode()
+const appStore = useAppStore()
+appStore.applyElderMode()
 
 // 全局网络状态监听
 const offline = ref(!navigator.onLine)
@@ -44,5 +52,17 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   z-index: 9999;
+}
+</style>
+
+<style>
+/* 页面过渡动画 */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
 }
 </style>
