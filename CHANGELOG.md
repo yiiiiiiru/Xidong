@@ -20,6 +20,32 @@
 
 ---
 
+## 5. feat(h5): 前端 P1+P2 体验与架构优化
+**提交**: `83ba864` | **日期**: 2026-07-01
+
+### P1 优化
+- 搜索防抖 composable (`useDebounce`) 应用于 ElderList/MealCheck/Admin
+- ElderDetail 编辑表单验证完善（手机号正则/年龄范围/必填项）
+- Vue Router 页面过渡动画 (fade)
+- AlertDetail 乐观更新 + 失败回滚
+- 底部操作栏 `safe-area-inset-bottom` 安全区适配
+- 删除 `HelloWorld.vue` 模板遗留文件
+
+### P2 优化
+- Vite 构建 `manualChunks` 分包（vant/vendor 单独 chunk）
+- 头像改本地 SVG 替换外部 CDN
+- 适老模式状态统一到 Pinia (`useAppStore`)
+- 新增 `ErrorBoundary` 错误边界组件
+- Tabbar 权限感知（楼长/物业隐藏食堂 Tab）
+- `BuildingAlerts` 对接真实 API 替换 mock
+
+### 涉及文件（14 files, +211 −136）
+| 新增 | 修改 |
+|------|------|
+| `src/composables/useDebounce.ts`, `src/stores/app.ts`, `src/components/ErrorBoundary.vue` | `App.vue`, `vite.config.ts`, `src/views/{ElderList,MealCheck,Admin,ElderDetail,AlertDetail,Me}.vue`, `src/views/building/BuildingAlerts.vue`, `src/components/AppTabbar.vue` |
+
+---
+
 ## 3. perf: P0+P1+P2 全面优化
 **提交**: `d6134c3` | **日期**: 2026-07-01
 
