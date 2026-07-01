@@ -13,8 +13,13 @@
       </van-dropdown-menu>
     </div>
 
+    <!-- Loading 骨架屏 -->
+    <div v-if="loading" class="list-content p-12">
+      <van-skeleton title :row="2" v-for="i in 5" :key="i" class="skeleton-item" />
+    </div>
+
     <!-- 列表 -->
-    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+    <van-pull-refresh v-else v-model="refreshing" @refresh="onRefresh">
       <div class="list-content p-12">
         <van-cell-group inset>
           <van-cell
@@ -63,6 +68,7 @@ const isDirector = computed(() => userStore.role === 'director')
 
 const keyword = ref('')
 const refreshing = ref(false)
+const loading = ref(true)
 const filterBuilding = ref('')
 const filterLevel = ref('')
 const elders = ref<Elder[]>([])
@@ -71,6 +77,7 @@ const buildingOptions = BUILDING_OPTIONS
 const levelOptions = PLAN_LEVEL_OPTIONS
 
 async function fetchElders() {
+  loading.value = true
   try {
     if (isDirector.value) {
       // 主任看全部
@@ -98,6 +105,8 @@ async function fetchElders() {
   } catch (err) {
     console.error('[ElderList] fetch failed:', err)
     showToast('老人档案加载失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -144,6 +153,10 @@ onMounted(() => fetchElders())
 }
 .list-content {
   min-height: 60vh;
+}
+.skeleton-item {
+  padding: 12px 16px;
+  margin-bottom: 8px;
 }
 .cell-right {
   display: flex;

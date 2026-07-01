@@ -77,8 +77,8 @@ function onRefresh() {
   gap: 8px;
   margin-bottom: 6px;
 }
-.ba-rule { font-size: 12px; color: #999; }
-.ba-time { margin-left: auto; font-size: 12px; color: #999; }
+.ba-rule { font-size: 12px; color: #666; }
+.ba-time { margin-left: auto; font-size: 12px; color: #666; }
 .ba-body {
   display: flex;
   align-items: center;

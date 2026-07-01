@@ -297,7 +297,7 @@ onMounted(() => fetchStats())
 }
 .app-version {
   font-size: 14px;
-  color: #999;
+  color: #666;
   margin: 0 0 12px;
 }
 .app-desc {

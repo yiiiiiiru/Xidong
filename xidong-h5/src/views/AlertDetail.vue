@@ -203,7 +203,7 @@ onMounted(() => fetchDetail())
 }
 .building-info {
   font-size: 13px;
-  color: #888;
+  color: #666;
 }
 .trigger-desc {
   font-size: 15px;
@@ -213,7 +213,7 @@ onMounted(() => fetchDetail())
 }
 .trigger-time {
   font-size: 13px;
-  color: #999;
+  color: #666;
   margin: 0;
 }
 .section {

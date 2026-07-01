@@ -44,7 +44,7 @@ interface DemoAccount {
   desc: string
   roleLabel: string
   emoji: string
-  tagType: string
+  tagType: 'primary' | 'danger' | 'warning' | 'success' | 'default'
 }
 
 const accounts: DemoAccount[] = [
@@ -121,7 +121,7 @@ function loginAs(account: DemoAccount) {
 .tip-text {
   text-align: center;
   font-size: 13px;
-  color: #999;
+  color: #666;
   margin-top: 20px;
 }
 </style>

@@ -116,8 +116,8 @@ function dotClass(event: string): string {
   line-height: 1.4;
 }
 .tl-time {
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: #666;
   margin: 0;
 }
 </style>

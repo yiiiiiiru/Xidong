@@ -2,7 +2,14 @@
   <div class="workbench">
     <van-nav-bar title="告警工作台" fixed placeholder />
 
-    <van-tabs v-model:active="activeTab" sticky offset-top="46">
+    <!-- Loading 骨架屏 -->
+    <div v-if="loading" class="alert-list">
+      <van-skeleton title :row="3" class="skeleton-card" />
+      <van-skeleton title :row="3" class="skeleton-card" />
+      <van-skeleton title :row="3" class="skeleton-card" />
+    </div>
+
+    <van-tabs v-else v-model:active="activeTab" sticky offset-top="46">
       <van-tab title="紧急" :badge="urgentCount || ''">
         <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
           <div class="alert-list">
@@ -106,5 +113,11 @@ onMounted(() => fetchAlerts())
 .alert-list {
   padding: 12px;
   min-height: 60vh;
+}
+.skeleton-card {
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #fff;
+  border-radius: 10px;
 }
 </style>

@@ -67,37 +67,62 @@ html, body {
 .mb-12 { margin-bottom: 12px; }
 
 /* ========== 适老模式 ========== */
+/* 改用 Vant CSS 变量 + font-size 方案，避免 zoom 导致 Popup/固定定位溢出 */
 html.elder-mode {
-  /* 全局放大 1.3x，铁法解决所有 px 写死的问题 */
-  zoom: 1.3;
-  -moz-transform: scale(1.3);
-  -moz-transform-origin: top left;
+  /* Vant 组件字号全面放大 */
+  --van-font-size-sm: 17px;
+  --van-font-size-md: 19px;
+  --van-font-size-lg: 24px;
+  --van-cell-font-size: 19px;
+  --van-nav-bar-title-font-size: 21px;
+  --van-tab-font-size: 19px;
+  --van-tag-font-size: 15px;
+  --van-cell-line-height: 28px;
+  --van-field-label-font-size: 17px;
+  --van-button-default-font-size: 17px;
+  --van-button-large-font-size: 19px;
 }
 
 html.elder-mode body {
-  /* 稍微加粗，提高可读性 */
+  font-size: 19px;
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  line-height: 1.7;
 }
 
-/* 适老模式下 Vant 字号覆盖 */
-html.elder-mode {
-  --van-font-size-sm: 16px;
-  --van-font-size-md: 18px;
-  --van-font-size-lg: 22px;
-  --van-cell-font-size: 18px;
-  --van-nav-bar-title-font-size: 20px;
-  --van-tab-font-size: 18px;
-  --van-tag-font-size: 14px;
+/* 适老模式下自定义文字放大 */
+html.elder-mode .elder-name,
+html.elder-mode .user-name,
+html.elder-mode .detail-rule,
+html.elder-mode .trigger-desc {
+  font-size: 19px;
 }
 
-/* 语音播报按钮 */
+html.elder-mode .building-info,
+html.elder-mode .trigger-time,
+html.elder-mode .tl-time,
+html.elder-mode .rule-id,
+html.elder-mode .time,
+html.elder-mode .ba-rule,
+html.elder-mode .ba-time {
+  font-size: 15px;
+}
+
+html.elder-mode .stat-num {
+  font-size: 28px;
+}
+
+html.elder-mode .stat-label {
+  font-size: 14px;
+}
+
+/* 语音播报按钮 — 最小触摸目标 44px (iOS HIG) */
 .tts-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #e6f4ff;
   border: none;
@@ -105,15 +130,15 @@ html.elder-mode {
   flex-shrink: 0;
 }
 .tts-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   fill: #1677ff;
 }
 html.elder-mode .tts-btn {
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
 }
 html.elder-mode .tts-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
 }

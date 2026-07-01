@@ -75,12 +75,12 @@ function readAloud() {
 }
 .rule-id {
   font-size: 13px;
-  color: #999;
+  color: #666;
 }
 .time {
   margin-left: auto;
   font-size: 13px;
-  color: #999;
+  color: #666;
 }
 .card-body {
   margin-bottom: 10px;

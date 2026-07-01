@@ -250,7 +250,7 @@ onMounted(() => {
 }
 .stat-label {
   font-size: 12px;
-  color: #999;
+  color: #666;
   margin-top: 4px;
 }
 .p-12 {
