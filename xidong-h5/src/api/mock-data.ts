@@ -69,8 +69,8 @@ export const mockAlertDetail = {
   ...mockAlerts[0],
   elder: mockElders[0],
   timeline: [
-    { id: '1', type: 'triggered', note: '规则 R-BTN 触发：一键报警按钮被按下', operator: '系统', created_at: now },
-    { id: '2', type: 'notified', note: '钉钉通知已推送至责任社工李姐', operator: '系统', created_at: now },
+    { event: 'triggered', ts: now, operator: '系统', note: '规则 R-BTN 触发：一键报警按钮被按下' },
+    { event: 'pushed', ts: now, operator: '系统', note: '钉钉通知已推送至责任社工李姐', channel: '钉钉' },
   ],
 }
 
@@ -98,10 +98,13 @@ export function getMockResponse(url: string): unknown {
     return mockStats
   }
   if (url.includes('/meals/stats')) {
-    return { total_today: 18, breakfast: 6, lunch: 8, dinner: 4 }
+    return { breakfast: 6, lunch: 8, dinner: 4, coverage_rate: 75 }
   }
   if (url.includes('/meals')) {
     return { items: mockMeals, total: mockMeals.length }
+  }
+  if (url.includes('/my-elders')) {
+    return { items: mockElders.slice(0, 4).map(e => ({ ...e, elder_id: e.id, elder_name: e.name })), total: 4 }
   }
   if (url.includes('/workers')) {
     return { items: [{ id: '1', name: '李姐', role: 'social_worker', phone: '139****5678', on_duty: true }], total: 1 }
